@@ -1,0 +1,27 @@
+{
+  "name": "Salon Owner Pro",
+  "short_name": "Salon Owner",
+  "description": "Manage your salon bookings and services",
+  "start_url": "/salon.html",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "https://api.iconify.design/emojione:barber-pole.svg?width=192&height=192",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://api.iconify.design/emojione:barber-pole.svg?width=512&height=512",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "lifestyle"]
+}

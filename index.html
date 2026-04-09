@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salon AI — Admin Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+:root{
+  --bg:#020617;--surface:#0d1117;--surface2:#161b22;--surface3:#1e2a3a;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --blue:#3b82f6;--bdim:rgba(59,130,246,0.12);
+  --green:#10b981;--gdim:rgba(16,185,129,0.12);
+  --amber:#f59e0b;--adim:rgba(245,158,11,0.12);
+  --red:#ef4444;--rdim:rgba(239,68,68,0.12);
+  --violet:#8b5cf6;--vdim:rgba(139,92,246,0.12);
+  --cyan:#06b6d4;--cdim:rgba(6,182,212,0.12);
+  --text:#f0f6fc;--text2:#8b949e;--text3:#3d444d;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh;}
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s;}
+.main{margin-left:240px;flex:1;}
+@media(max-width:768px){.sidebar{transform:translateX(-260px);}.sidebar.open{transform:translateX(0);}.main{margin-left:0;}}
+
+/* ── SIDEBAR ── */
+.logo-area{padding:20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--blue),#1e40af);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;color:white;flex-shrink:0;}
+.logo-text{font-size:14px;font-weight:800;letter-spacing:-.3px;}
+.logo-sub{font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.1em;}
+
+.nav-sec{padding:14px 12px 3px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s;margin:1px 6px;position:relative;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--bdim);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
+.nav-item .ni{width:16px;text-align:center;font-size:13px;}
+.nbadge{margin-left:auto;background:var(--red);color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;min-width:18px;text-align:center;}
+
+.sidebar-footer{margin-top:auto;padding:14px;border-top:1px solid var(--border);}
+.admin-chip{display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;}
+.admin-av{width:32px;height:32px;background:linear-gradient(135deg,var(--blue),var(--violet));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+
+/* ── TOPBAR ── */
+.topbar{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--surface);position:sticky;top:0;z-index:50;}
+.topbar-title{font-size:14px;font-weight:700;}
+.tbtn{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text2);transition:all .15s;}
+.tbtn:hover{border-color:var(--blue);color:var(--blue);}
+
+/* ── PAGE ── */
+.page{padding:20px;display:none;}
+.page.active{display:block;}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s;}
+.stat-card:hover{border-color:var(--border2);}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.blue::after{background:linear-gradient(90deg,var(--blue),transparent);}
+.stat-card.green::after{background:linear-gradient(90deg,var(--green),transparent);}
+.stat-card.amber::after{background:linear-gradient(90deg,var(--amber),transparent);}
+.stat-card.red::after{background:linear-gradient(90deg,var(--red),transparent);}
+.stat-card.violet::after{background:linear-gradient(90deg,var(--violet),transparent);}
+.stat-card.cyan::after{background:linear-gradient(90deg,var(--cyan),transparent);}
+.slabel{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+.svalue{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;}
+.ssub{font-size:10px;color:var(--text3);margin-top:5px;}
+.sicon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:26px;opacity:.07;}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:16px;}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);}
+.card-body{padding:18px;}
+
+/* ── TABLE ── */
+.twrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:11px 14px;font-size:12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.015);}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+.bg{background:var(--gdim);color:var(--green);border:1px solid rgba(16,185,129,.25);}
+.ba{background:var(--adim);color:var(--amber);border:1px solid rgba(245,158,11,.25);}
+.br{background:var(--rdim);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+.bb{background:var(--bdim);color:var(--blue);border:1px solid rgba(59,130,246,.25);}
+.bv{background:var(--vdim);color:var(--violet);border:1px solid rgba(139,92,246,.25);}
+.bgr{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;font-family:'Plus Jakarta Sans',sans-serif;}
+.btn-sm{padding:4px 10px;font-size:10px;}
+.btn-blue{background:var(--blue);color:white;}
+.btn-blue:hover{background:#2563eb;}
+.btn-green{background:var(--green);color:white;}
+.btn-green:hover{background:#059669;}
+.btn-red{background:var(--rdim);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+.btn-red:hover{background:var(--red);color:white;}
+.btn-amber{background:var(--adim);color:var(--amber);border:1px solid rgba(245,158,11,.25);}
+.btn-amber:hover{background:var(--amber);color:white;}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+.btn-violet{background:var(--violet);color:white;}
+
+/* ── FORMS ── */
+.fg{margin-bottom:14px;}
+.flabel{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;display:block;}
+input,select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:9px 12px;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;transition:border-color .2s;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.08);}
+select option{background:var(--surface);}
+input::placeholder,textarea::placeholder{color:var(--text3);}
+
+/* ── TOGGLE ── */
+.tog{position:relative;display:inline-block;width:44px;height:24px;}
+.tog input{opacity:0;width:0;height:0;}
+.togslider{position:absolute;inset:0;background:rgba(255,255,255,.08);border-radius:24px;cursor:pointer;transition:.3s;}
+.togslider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#475569;border-radius:50%;transition:.3s;}
+input:checked+.togslider{background:linear-gradient(135deg,var(--green),#047857);}
+input:checked+.togslider:before{transform:translateX(20px);background:white;}
+
+/* ── MODAL ── */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}
+.moverlay.open{display:flex;}
+.mbox{background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:24px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+.mtitle{font-size:14px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
+.mclose{cursor:pointer;color:var(--text3);font-size:16px;}
+.mclose:hover{color:var(--text);}
+
+/* ── SECTION HEADER ── */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.sec-title{font-size:18px;font-weight:800;}
+.sec-title span{color:var(--blue);}
+
+/* ── SEARCH ── */
+.sbar{position:relative;}
+.sbar i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:11px;}
+.sbar input{padding-left:30px;}
+
+/* ── POLICY ROW ── */
+.pol-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px;margin-bottom:8px;border:1px solid var(--border);}
+.pol-label{flex:1;}
+.pol-label p{font-size:12px;font-weight:700;}
+.pol-label span{font-size:10px;color:var(--text3);}
+.pol-input{width:72px;text-align:center;padding:7px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+/* ── TICKET CARD ── */
+.tcard{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;}
+
+/* ── DAY BUTTONS ── */
+.day-btn{padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text3);transition:all .15s;font-family:'Plus Jakarta Sans',sans-serif;}
+.day-btn.sel{background:var(--bdim);color:var(--blue);border-color:rgba(59,130,246,.4);}
+
+/* ── MISC ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:600px){.g2,.g3{grid-template-columns:1fr;}}
+.flex{display:flex;}.aic{align-items:center;}.jb{justify-content:space-between;}.gap2{gap:8px;}.gap3{gap:12px;}
+.mb4{margin-bottom:16px;}.mb6{margin-bottom:24px;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.text-green{color:var(--green);}.text-red{color:var(--red);}.text-amber{color:var(--amber);}.text-blue{color:var(--blue);}.text-muted{color:var(--text3);}
+.info-box{background:var(--bdim);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:12px 14px;font-size:11px;color:#93c5fd;margin-bottom:14px;line-height:1.5;}
+.warn-box{background:var(--adim);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px;font-size:11px;color:#fde68a;margin-bottom:14px;line-height:1.5;}
+.spin{display:flex;justify-content:center;padding:32px;}
+.spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:40px 16px;color:var(--text3);}
+.empty i{font-size:32px;margin-bottom:10px;opacity:.3;display:block;}
+.empty p{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;">
+  <div style="width:100%;max-width:360px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,var(--blue),#1e40af);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 14px;">
+        <i class="fa-solid fa-shield-halved" style="color:white"></i>
+      </div>
+      <h1 style="font-size:20px;font-weight:800;">Admin <span style="color:var(--blue)">Command</span> Center</h1>
+      <p style="font-size:10px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.1em;">Salon AI Platform</p>
+    </div>
+    <div id="lerr" style="display:none;background:var(--rdim);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:9px;padding:10px 14px;font-size:11px;margin-bottom:12px;"></div>
+    <div class="fg"><label class="flabel">Username</label><input type="text" id="a-user" placeholder="admin" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <div class="fg"><label class="flabel">Password</label><input type="password" id="a-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <button class="btn btn-blue" style="width:100%;padding:11px;font-size:12px;" onclick="adminLogin()">
+      <i class="fa-solid fa-right-to-bracket"></i> Login to Dashboard
+    </button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" class="layout" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon"><i class="fa-solid fa-scissors"></i></div>
+      <div><div class="logo-text">Salon AI</div><div class="logo-sub">Admin Panel</div></div>
+    </div>
+    <nav style="flex:1;overflow-y:auto;padding:6px 0;">
+      <div class="nav-sec">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard')"><span class="ni"><i class="fa-solid fa-gauge-high"></i></span>Dashboard</div>
+      <div class="nav-sec">Management</div>
+      <div class="nav-item" onclick="showPage('salons')"><span class="ni"><i class="fa-solid fa-shop"></i></span>Salons</div>
+      <div class="nav-item" onclick="showPage('customers')"><span class="ni"><i class="fa-solid fa-users"></i></span>Customers</div>
+      <div class="nav-item" onclick="showPage('agents')"><span class="ni"><i class="fa-solid fa-user-tie"></i></span>Agents</div>
+      <div class="nav-item" onclick="showPage('bookings')"><span class="ni"><i class="fa-solid fa-calendar-check"></i></span>Bookings</div>
+      <div class="nav-item" onclick="showPage('utr-verify')"><span class="ni"><i class="fa-solid fa-shield-check"></i></span>UTR Verify
+        <span class="nbadge" id="utr-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-sec">Finance</div>
+      <div class="nav-item" onclick="showPage('payments')"><span class="ni"><i class="fa-solid fa-money-bill-transfer"></i></span>Salon Payments</div>
+      <div class="nav-item" onclick="showPage('agentpay')"><span class="ni"><i class="fa-solid fa-wallet"></i></span>Agent Payouts</div>
+      <div class="nav-sec">Support</div>
+      <div class="nav-item" onclick="showPage('tickets')">
+        <span class="ni"><i class="fa-solid fa-ticket"></i></span>Tickets
+        <span class="nbadge" id="ticket-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-sec">Config</div>
+      <div class="nav-item" onclick="showPage('settings')"><span class="ni"><i class="fa-solid fa-sliders"></i></span>Settings</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-chip">
+        <div class="admin-av">A</div>
+        <div><div style="font-size:12px;font-weight:700;">Super Admin</div><div style="font-size:10px;color:var(--text3);">Full Access</div></div>
+        <i class="fa-solid fa-right-from-bracket" style="margin-left:auto;color:var(--text3);cursor:pointer;" onclick="location.reload()"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="flex aic gap2">
+        <div class="tbtn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;" id="hamburger"><i class="fa-solid fa-bars"></i></div>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+      </div>
+      <div class="flex aic gap2">
+        <div class="tbtn" onclick="refreshPage()" title="Refresh"><i class="fa-solid fa-rotate-right"></i></div>
+        <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono'" id="live-clock"></div>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid" id="dash-stats"><div class="spin"><div class="spinner"></div></div></div>
+      <div class="g2">
+        <div class="card"><div class="card-head"><span class="card-title"><i class="fa-solid fa-calendar-day" style="color:var(--blue)"></i> Recent Bookings</span></div><div class="card-body" id="dash-bookings"><div class="spin"><div class="spinner"></div></div></div></div>
+        <div class="card"><div class="card-head"><span class="card-title"><i class="fa-solid fa-clock" style="color:var(--amber)"></i> Pending Approvals</span></div><div class="card-body" id="dash-approvals"><div class="spin"><div class="spinner"></div></div></div></div>
+      </div>
+    </div>
+
+    <!-- ── SALONS ── -->
+    <div class="page" id="page-salons">
+      <div class="sec-head">
+        <div class="sec-title">Salons <span>& Parlours</span></div>
+        <div class="flex gap2">
+          <div class="sbar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search..." id="salon-search" oninput="filterSalons(this.value)" style="width:180px"></div>
+          <select id="salon-status-filter" onchange="loadSalons()" style="width:120px">
+            <option value="">All</option><option value="pending">Pending</option>
+            <option value="approved">Approved</option><option value="blocked">Blocked</option>
+          </select>
+        </div>
+      </div>
+      <div class="card"><div class="twrap">
+        <table><thead><tr><th>Salon</th><th>Type</th><th>Phone</th><th>Agent</th><th>Booking Fee</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="salon-tbody"><tr><td colspan="7"><div class="spin"><div class="spinner"></div></div></td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- ── CUSTOMERS ── -->
+    <div class="page" id="page-customers">
+      <div class="sec-head">
+        <div class="sec-title">Customers</div>
+        <div class="sbar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search..." id="cust-search" oninput="filterCustomers(this.value)" style="width:200px"></div>
+      </div>
+      <div class="card"><div class="twrap">
+        <table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Total Bookings</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="cust-tbody"><tr><td colspan="6"><div class="spin"><div class="spinner"></div></div></td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- ── AGENTS ── -->
+    <div class="page" id="page-agents">
+      <div class="sec-head">
+        <div class="sec-title">Agents <span>Management</span></div>
+        <button class="btn btn-blue" onclick="openM('m-create-agent')"><i class="fa-solid fa-user-plus"></i> Create Agent</button>
+      </div>
+      <div class="card"><div class="twrap">
+        <table><thead><tr><th>Agent</th><th>Partner ID</th><th>Salons</th><th>Total Earned</th><th>Withdrawn</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="agent-tbody"><tr><td colspan="7"><div class="spin"><div class="spinner"></div></div></td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- ── BOOKINGS ── -->
+    <div class="page" id="page-bookings">
+      <div class="sec-head">
+        <div class="sec-title">All <span>Bookings</span></div>
+        <select id="bk-filter" onchange="loadBookings()" style="width:140px">
+          <option value="">All</option><option value="pending_admin">Pending UTR</option><option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="card"><div class="twrap">
+        <table><thead><tr><th>#</th><th>Customer</th><th>Salon</th><th>Service</th><th>Date/Time</th><th>Amount</th><th>UTR</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="bk-tbody"><tr><td colspan="9"><div class="spin"><div class="spinner"></div></div></td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- ── UTR VERIFY ── -->
+    <div class="page" id="page-utr-verify">
+      <div class="sec-head"><div class="sec-title">UTR <span>Verification</span></div></div>
+      <div class="info-box"><i class="fa-solid fa-shield-check"></i> Pending bookings ka UTR verify karein. Approve hone ke baad salon ko notification milegi.</div>
+      <div id="utr-list"><div class="spin"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ── SALON PAYMENTS ── -->
+    <div class="page" id="page-payments">
+      <div class="sec-head"><div class="sec-title">Salon <span>Daily Payments</span></div></div>
+      <div class="info-box"><i class="fa-solid fa-circle-info"></i> Salon owners ka payment daily settle hota hai. Har confirmed booking ka amount minus platform commission yahan dikhega.</div>
+      <div class="card"><div class="twrap">
+        <table><thead><tr><th>Salon</th><th>Date</th><th>Bookings</th><th>Gross</th><th>Commission</th><th>Net Payable</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="pay-tbody"><tr><td colspan="8"><div class="spin"><div class="spinner"></div></div></td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- ── AGENT PAYOUTS ── -->
+    <div class="page" id="page-agentpay">
+      <div class="sec-head"><div class="sec-title">Agent <span>Payouts</span></div></div>
+      <div id="agentpay-content"><div class="spin"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ── TICKETS ── -->
+    <div class="page" id="page-tickets">
+      <div class="sec-head">
+        <div class="sec-title">Support <span>Tickets</span></div>
+        <div class="flex gap2">
+          <select id="tkt-type" onchange="loadTickets()" style="width:130px">
+            <option value="">All Types</option><option value="customer">Customer</option><option value="salon">Salon</option>
+          </select>
+          <select id="tkt-status" onchange="loadTickets()" style="width:120px">
+            <option value="open">Open</option><option value="resolved">Resolved</option><option value="">All</option>
+          </select>
+        </div>
+      </div>
+      <div id="ticket-list"><div class="spin"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="page" id="page-settings">
+      <div class="sec-title mb6">Platform <span style="color:var(--blue)">Settings</span></div>
+      <div class="g2">
+
+        <!-- Payment QR — Category Wise -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-head">
+            <span class="card-title"><i class="fa-solid fa-qrcode" style="color:var(--violet)"></i> Onboarding Payment QR — Category Wise</span>
+            <button class="btn btn-sm btn-violet" onclick="saveQRSettings()"><i class="fa-solid fa-save"></i> Save All QRs</button>
+          </div>
+          <div class="card-body">
+            <div class="info-box"><i class="fa-solid fa-circle-info"></i> Har category/type ke liye alag QR URL daalo. Agent onboarding ke time wahi QR dikhega.</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px;">
+
+              <!-- SALON -->
+              <div>
+                <div style="font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-scissors"></i> Salon</div>
+
+                <div style="margin-bottom:16px;">
+                  <label class="flabel">🌀 Non-AC — QR Image URL</label>
+                  <input type="url" id="qr-salon-nonac" placeholder="https://..." style="margin-bottom:6px;">
+                  <div id="qr-prev-salon-nonac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                </div>
+                <div style="margin-bottom:16px;">
+                  <label class="flabel">❄️ AC — QR Image URL</label>
+                  <input type="url" id="qr-salon-ac" placeholder="https://..." style="margin-bottom:6px;">
+                  <div id="qr-prev-salon-ac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                </div>
+                <div style="margin-bottom:16px;">
+                  <label class="flabel">👑 Luxury — QR Image URL</label>
+                  <input type="url" id="qr-salon-luxury" placeholder="https://..." style="margin-bottom:6px;">
+                  <div id="qr-prev-salon-luxury" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                </div>
+              </div>
+
+              <!-- BEAUTY PARLOUR -->
+              <div>
+                <div style="font-size:11px;font-weight:800;color:var(--violet);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-spa"></i> Beauty Parlour</div>
+
+                <div style="margin-bottom:16px;">
+                  <label class="flabel">🌀 Non-AC — QR Image URL</label>
+                  <input type="url" id="qr-parlour-nonac" placeholder="https://..." style="margin-bottom:6px;">
+                  <div id="qr-prev-parlour-nonac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                </div>
+                <div style="margin-bottom:16px;">
+                  <label class="flabel">❄️ AC — QR Image URL</label>
+                  <input type="url" id="qr-parlour-ac" placeholder="https://..." style="margin-bottom:6px;">
+                  <div id="qr-prev-parlour-ac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                </div>
+                <div style="margin-bottom:16px;">
+                  <label class="flabel">👑 Luxury — QR Image URL</label>
+                  <input type="url" id="qr-parlour-luxury" placeholder="https://..." style="margin-bottom:6px;">
+                  <div id="qr-prev-parlour-luxury" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Common UPI -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+              <div class="fg"><label class="flabel">UPI ID (common)</label><input type="text" id="s-upi" placeholder="name@upi"></div>
+              <div class="fg"><label class="flabel">Payment Name</label><input type="text" id="s-payname" placeholder="Salon AI Platform"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agent Commission -->
+        <div class="card">
+          <div class="card-head"><span class="card-title"><i class="fa-solid fa-user-tie" style="color:var(--cyan)"></i> Agent Commission</span></div>
+          <div class="card-body">
+            <div class="fg"><label class="flabel">Agent Commission / Onboarding (₹)</label><input type="number" id="s-agent-comm" placeholder="200"></div>
+            <button class="btn btn-blue" onclick="saveAgentComm()"><i class="fa-solid fa-save"></i> Save</button>
+          </div>
+        </div>
+
+        <!-- Support WhatsApp -->
+        <div class="card">
+          <div class="card-head"><span class="card-title"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Customer Support WhatsApp</span></div>
+          <div class="card-body">
+            <div class="info-box"><i class="fa-solid fa-circle-info"></i> Customer app mein WhatsApp icon se customer is number pe complaint karega.</div>
+            <div class="fg"><label class="flabel">WhatsApp Number (10-digit)</label><input type="tel" id="s-support-wa" placeholder="9876543210" maxlength="10"></div>
+            <button class="btn btn-green" onclick="saveSupportWhatsApp()"><i class="fa-solid fa-save"></i> Save</button>
+          </div>
+        </div>
+
+        <!-- Onboarding Fees — full width -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-head">
+            <span class="card-title"><i class="fa-solid fa-shop" style="color:var(--violet)"></i> Onboarding Fee — Category Wise (₹)</span>
+            <button class="btn btn-sm btn-violet" onclick="saveOnboardingFees()"><i class="fa-solid fa-save"></i> Save Onboarding Fees</button>
+          </div>
+          <div class="card-body">
+            <div class="info-box"><i class="fa-solid fa-circle-info"></i> Har category ka onboarding fee alag set kar sakte hain. Salon approve karte waqt yahi fee collect hogi.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+              <!-- Salon -->
+              <div>
+                <div style="font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-scissors"></i> Salon</div>
+                <div class="pol-row">
+                  <div class="pol-label"><p>Non AC</p></div>
+                  <span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span>
+                  <input type="number" class="pol-input" id="ob-salon-nonac" placeholder="499" style="width:80px;">
+                </div>
+                <div class="pol-row">
+                  <div class="pol-label"><p>AC</p></div>
+                  <span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span>
+                  <input type="number" class="pol-input" id="ob-salon-ac" placeholder="999" style="width:80px;">
+                </div>
+                <div class="pol-row">
+                  <div class="pol-label"><p>Luxury</p></div>
+                  <span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span>
+                  <input type="number" class="pol-input" id="ob-salon-luxury" placeholder="1499" style="width:80px;">
+                </div>
+              </div>
+              <!-- Beauty Parlour -->
+              <div>
+                <div style="font-size:11px;font-weight:800;color:var(--violet);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-spa"></i> Beauty Parlour</div>
+                <div class="pol-row">
+                  <div class="pol-label"><p>Non AC</p></div>
+                  <span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span>
+                  <input type="number" class="pol-input" id="ob-parlour-nonac" placeholder="699" style="width:80px;">
+                </div>
+                <div class="pol-row">
+                  <div class="pol-label"><p>AC</p></div>
+                  <span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span>
+                  <input type="number" class="pol-input" id="ob-parlour-ac" placeholder="1199" style="width:80px;">
+                </div>
+                <div class="pol-row">
+                  <div class="pol-label"><p>Luxury</p></div>
+                  <span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span>
+                  <input type="number" class="pol-input" id="ob-parlour-luxury" placeholder="1999" style="width:80px;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-Booking Platform Fees — full width -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-head">
+            <span class="card-title"><i class="fa-solid fa-indian-rupee-sign" style="color:var(--amber)"></i> Per Booking Fee — Category Wise (₹)</span>
+            <button class="btn btn-sm btn-amber" onclick="saveBookingFees()"><i class="fa-solid fa-save"></i> Save Booking Fees</button>
+          </div>
+          <div class="card-body">
+            <div class="info-box"><i class="fa-solid fa-circle-info"></i> Har booking par Salon se aur Customer se alag-alag fee li jaayegi. Admin yahan set/edit kar sakta hai.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+              <!-- FROM SALON -->
+              <div>
+                <div style="font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-shop"></i> Salon Se (Commission)</div>
+                <div style="font-size:10px;color:var(--blue);font-weight:700;margin:8px 0 4px;">Salon</div>
+                <div class="pol-row"><div class="pol-label"><p>Non AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-salon-nonac-salon" placeholder="5" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-salon-ac-salon" placeholder="10" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>Luxury</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-salon-luxury-salon" placeholder="10" style="width:72px;"></div>
+                <div style="font-size:10px;color:var(--violet);font-weight:700;margin:12px 0 4px;">Beauty Parlour</div>
+                <div class="pol-row"><div class="pol-label"><p>Non AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-parlour-nonac-salon" placeholder="10" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-parlour-ac-salon" placeholder="15" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>Luxury</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-parlour-luxury-salon" placeholder="15" style="width:72px;"></div>
+              </div>
+
+              <!-- FROM CUSTOMER -->
+              <div>
+                <div style="font-size:11px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-user"></i> Customer Se (Platform Fee)</div>
+                <div style="font-size:10px;color:var(--blue);font-weight:700;margin:8px 0 4px;">Salon</div>
+                <div class="pol-row"><div class="pol-label"><p>Non AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-salon-nonac-cust" placeholder="10" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-salon-ac-cust" placeholder="10" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>Luxury</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-salon-luxury-cust" placeholder="10" style="width:72px;"></div>
+                <div style="font-size:10px;color:var(--violet);font-weight:700;margin:12px 0 4px;">Beauty Parlour</div>
+                <div class="pol-row"><div class="pol-label"><p>Non AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-parlour-nonac-cust" placeholder="10" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>AC</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-parlour-ac-cust" placeholder="10" style="width:72px;"></div>
+                <div class="pol-row"><div class="pol-label"><p>Luxury</p></div><span style="font-size:14px;font-weight:700;color:var(--text3);">₹</span><input type="number" class="pol-input" id="bf-parlour-luxury-cust" placeholder="10" style="width:72px;"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Cancellation Policy — full width -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-head"><span class="card-title"><i class="fa-solid fa-ban" style="color:var(--red)"></i> Customer Cancellation Refund Policy</span></div>
+          <div class="card-body">
+            <div class="info-box">Customer jab booking cancel karega to neeche ke rules apply honge. Admin yahan % change kar sakta hai.</div>
+            <div class="pol-row">
+              <div style="width:30px;height:30px;background:var(--gdim);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa-solid fa-clock" style="color:var(--green);font-size:12px;"></i></div>
+              <div class="pol-label"><p>24+ Hours Before</p><span>Full refund milega</span></div>
+              <input type="number" class="pol-input" id="pol-24" min="0" max="100" placeholder="100">
+              <span style="font-size:11px;color:var(--text3);font-weight:700;">% Refund</span>
+            </div>
+            <div class="pol-row">
+              <div style="width:30px;height:30px;background:var(--bdim);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa-solid fa-clock" style="color:var(--blue);font-size:12px;"></i></div>
+              <div class="pol-label"><p>12–24 Hours Before</p><span>Partial refund</span></div>
+              <input type="number" class="pol-input" id="pol-12" min="0" max="100" placeholder="75">
+              <span style="font-size:11px;color:var(--text3);font-weight:700;">% Refund</span>
+            </div>
+            <div class="pol-row">
+              <div style="width:30px;height:30px;background:var(--adim);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa-solid fa-clock" style="color:var(--amber);font-size:12px;"></i></div>
+              <div class="pol-label"><p>6–12 Hours Before</p><span>50% charge</span></div>
+              <input type="number" class="pol-input" id="pol-6" min="0" max="100" placeholder="50">
+              <span style="font-size:11px;color:var(--text3);font-weight:700;">% Refund</span>
+            </div>
+            <div class="pol-row">
+              <div style="width:30px;height:30px;background:var(--rdim);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa-solid fa-xmark" style="color:var(--red);font-size:12px;"></i></div>
+              <div class="pol-label"><p>Less than 6 Hours</p><span>No refund</span></div>
+              <input type="number" class="pol-input" id="pol-0" min="0" max="100" placeholder="0">
+              <span style="font-size:11px;color:var(--text3);font-weight:700;">% Refund</span>
+            </div>
+            <button class="btn btn-red" onclick="saveCancelPolicy()"><i class="fa-solid fa-save"></i> Save Policy</button>
+          </div>
+        </div>
+
+        <!-- Agent Payment Day — full width -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-head"><span class="card-title"><i class="fa-solid fa-calendar-week" style="color:var(--cyan)"></i> Agent Weekly Payment Day</span></div>
+          <div class="card-body">
+            <p style="font-size:11px;color:var(--text3);margin-bottom:12px;">Admin jo din select karega us din sabhi agents ko unka wallet balance transfer hoga.</p>
+            <div class="flex gap2" style="flex-wrap:wrap;margin-bottom:14px;" id="day-btns">
+              <!-- generated by JS -->
+            </div>
+            <div style="font-size:11px;color:var(--text2);">Selected: <b id="sel-day" style="color:var(--blue)">—</b></div>
+            <button class="btn btn-blue" style="margin-top:12px;" onclick="savePayDay()"><i class="fa-solid fa-save"></i> Save Payment Day</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ── MODALS ── -->
+<!-- CREATE AGENT MODAL -->
+<div class="moverlay" id="m-create-agent">
+  <div class="mbox">
+    <div class="mtitle">
+      <div class="flex aic gap2"><div style="width:30px;height:30px;background:var(--bdim);border-radius:8px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-user-plus" style="color:var(--blue);font-size:13px;"></i></div> Create New Agent</div>
+      <span class="mclose" onclick="closeM('m-create-agent');resetCreateAgent()"><i class="fa-solid fa-xmark"></i></span>
+    </div>
+
+    <!-- FORM STATE -->
+    <div id="ca-form-state">
+      <div class="info-box"><i class="fa-solid fa-circle-info"></i> Agent ka User ID aur Password automatically generate hoga. Inhe agent ke saath share karein.</div>
+      <div class="fg">
+        <label class="flabel"><i class="fa-solid fa-phone" style="color:var(--blue);margin-right:4px;"></i> Mobile Number *</label>
+        <input type="tel" id="ca-phone" placeholder="10-digit mobile number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div class="fg">
+        <label class="flabel"><i class="fa-solid fa-user" style="color:var(--blue);margin-right:4px;"></i> Full Name *</label>
+        <input type="text" id="ca-name" placeholder="Agent ka naam">
+      </div>
+      <div class="fg">
+        <label class="flabel"><i class="fa-solid fa-location-dot" style="color:var(--blue);margin-right:4px;"></i> City *</label>
+        <input type="text" id="ca-city" placeholder="City (e.g. Mumbai, Delhi)">
+      </div>
+      <div id="ca-err" style="display:none;background:var(--rdim);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:9px;padding:10px 14px;font-size:11px;margin-bottom:12px;"></div>
+      <div class="flex gap2">
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeM('m-create-agent');resetCreateAgent()">Cancel</button>
+        <button class="btn btn-blue" style="flex:2;" id="ca-submit-btn" onclick="createAgent()"><i class="fa-solid fa-user-plus"></i> Create Agent</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div id="ca-success-state" style="display:none;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="width:54px;height:54px;background:var(--gdim);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid rgba(16,185,129,.3);">
+          <i class="fa-solid fa-circle-check" style="color:var(--green);font-size:22px;"></i>
+        </div>
+        <div style="font-size:15px;font-weight:800;color:var(--green);">Agent Created!</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;">Ye credentials agent ke saath share karein</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Agent Name</div>
+            <div style="font-size:13px;font-weight:700;" id="ca-res-name">—</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">City</div>
+            <div style="font-size:13px;font-weight:700;" id="ca-res-city">—</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">User ID (Partner ID)</div>
+            <div style="font-size:14px;font-weight:800;color:var(--blue);font-family:'JetBrains Mono',monospace;" id="ca-res-uid">—</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Password</div>
+            <div style="font-size:14px;font-weight:800;color:var(--violet);font-family:'JetBrains Mono',monospace;" id="ca-res-pass">—</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="copyAgentCreds()"><i class="fa-solid fa-copy"></i> Copy Credentials</button>
+      <button class="btn btn-blue" style="width:100%;" onclick="closeM('m-create-agent');resetCreateAgent();loadAgents()"><i class="fa-solid fa-check"></i> Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="m-salon"><div class="mbox"><div class="mtitle">Salon Details <span class="mclose" onclick="closeM('m-salon')"><i class="fa-solid fa-xmark"></i></span></div><div id="m-salon-body"></div></div></div>
+<div class="moverlay" id="m-agent"><div class="mbox"><div class="mtitle">Agent Details <span class="mclose" onclick="closeM('m-agent')"><i class="fa-solid fa-xmark"></i></span></div><div id="m-agent-body"></div></div></div>
+<div class="moverlay" id="m-ticket"><div class="mbox"><div class="mtitle">Resolve Ticket <span class="mclose" onclick="closeM('m-ticket')"><i class="fa-solid fa-xmark"></i></span></div><div id="m-ticket-body"></div></div></div>
+<div class="moverlay" id="m-withdraw"><div class="mbox"><div class="mtitle">Withdrawal Request <span class="mclose" onclick="closeM('m-withdraw')"><i class="fa-solid fa-xmark"></i></span></div><div id="m-withdraw-body"></div></div></div>
+<div class="moverlay" id="m-refund"><div class="mbox"><div class="mtitle">Process Refund <span class="mclose" onclick="closeM('m-refund')"><i class="fa-solid fa-xmark"></i></span></div><div id="m-refund-body"></div></div></div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+const SURL = 'https://mlflkkcvbnfuhcoojcmv.supabase.co';
+const SKEY = 'sb_publishable_izxuZIgnWWe13aUwQ5quPw_Kg99ioy4';
+const db   = supabase.createClient(SURL, SKEY);
+
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = '757054';
+
+let curPage = 'dashboard';
+let selPayDay = '';
+let salonCache = [];
+let custCache  = [];
+
+/* ─── AUTH ─── */
+function adminLogin() {
+  const u = document.getElementById('a-user').value.trim();
+  const p = document.getElementById('a-pass').value.trim();
+  const err = document.getElementById('lerr');
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+    // show hamburger on mobile
+    if (window.innerWidth < 768) document.getElementById('hamburger').style.display = 'flex';
+    startClock();
+    showPage('dashboard');
+    loadTicketBadge();
+    setInterval(loadTicketBadge, 30000);
+  } else {
+    err.style.display = 'block';
+    err.textContent = '❌ Invalid credentials!';
+  }
+}
+
+function startClock() {
+  const el = document.getElementById('live-clock');
+  setInterval(() => { el.textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }, 1000);
+}
+
+/* ─── NAV ─── */
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${page}`)?.classList.add('active');
+  document.querySelector(`.nav-item[onclick="showPage('${page}')"]`)?.classList.add('active');
+  const titles = {dashboard:'Dashboard',salons:'Salons & Parlours',customers:'Customers',agents:'Agents',bookings:'Bookings',payments:'Salon Payments',agentpay:'Agent Payouts',tickets:'Tickets',settings:'Settings'};
+  document.getElementById('page-title').textContent = titles[page] || page;
+  curPage = page;
+  loadPage(page);
+  if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
+}
+function refreshPage() { loadPage(curPage); }
+function loadPage(p) {
+  if (p==='dashboard') loadDashboard();
+  if (p==='salons')    loadSalons();
+  if (p==='customers') loadCustomers();
+  if (p==='agents')    loadAgents();
+  if (p==='bookings')  loadBookings();
+  if (p==='utr-verify') loadUtrVerify();
+  if (p==='payments')  loadPayments();
+  if (p==='agentpay')  loadAgentPay();
+  if (p==='tickets')   loadTickets();
+  if (p==='settings')  loadSettings();
+}
+
+/* ─── MODAL HELPERS ─── */
+function openM(id)  { document.getElementById(id)?.classList.add('open'); }
+function closeM(id) { document.getElementById(id)?.classList.remove('open'); }
+
+/* ─── TOAST ─── */
+function toast(msg, type='green') {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:700;background:${type==='green'?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)'};color:${type==='green'?'#34d399':'#f87171'};border:1px solid ${type==='green'?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)'};backdrop-filter:blur(10px);`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════════ */
+async function loadDashboard() {
+  const [salR, custR, agR, bkR, utrR] = await Promise.all([
+    db.from('salons').select('id,status'),
+    db.from('customers').select('id'),
+    db.from('agents').select('id,wallet_balance'),
+    db.from('bookings').select('id,status,price,booking_date'),
+    db.from('bookings').select('id').in('status',['pending_admin','pending'])
+  ]);
+  // Update UTR badge
+  const utrCount = (utrR.data||[]).length;
+  const utrBadge = document.getElementById('utr-badge');
+  if (utrBadge) { if(utrCount>0){utrBadge.style.display='inline-flex';utrBadge.textContent=utrCount;}else{utrBadge.style.display='none';} }
+  const today = new Date().toISOString().split('T')[0];
+  const bks   = bkR.data || [];
+  const todayBks = bks.filter(b => b.booking_date === today);
+  const todayRev = todayBks.filter(b=>b.status==='confirmed').reduce((s,b)=>s+(b.price||0),0);
+  const totalBal = (agR.data||[]).reduce((s,a)=>s+(a.wallet_balance||0),0);
+  const pending  = (salR.data||[]).filter(s=>s.status==='pending').length;
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card blue"><div class="slabel">Total Salons</div><div class="svalue">${(salR.data||[]).length}</div><div class="ssub">${(salR.data||[]).filter(s=>s.status==='approved').length} approved</div><i class="fa-solid fa-shop sicon"></i></div>
+    <div class="stat-card green"><div class="slabel">Customers</div><div class="svalue">${(custR.data||[]).length}</div><div class="ssub">Registered users</div><i class="fa-solid fa-users sicon"></i></div>
+    <div class="stat-card violet"><div class="slabel">Agents</div><div class="svalue">${(agR.data||[]).length}</div><div class="ssub">₹${totalBal} pending payout</div><i class="fa-solid fa-user-tie sicon"></i></div>
+    <div class="stat-card amber"><div class="slabel">Today Bookings</div><div class="svalue">${todayBks.length}</div><div class="ssub">₹${todayRev} revenue</div><i class="fa-solid fa-calendar sicon"></i></div>
+    <div class="stat-card red"><div class="slabel">Pending Approvals</div><div class="svalue">${pending}</div><div class="ssub">Awaiting review</div><i class="fa-solid fa-clock sicon"></i></div>
+    <div class="stat-card cyan"><div class="slabel">Total Bookings</div><div class="svalue">${bks.length}</div><div class="ssub">${bks.filter(b=>b.status==='confirmed').length} confirmed</div><i class="fa-solid fa-check sicon"></i></div>`;
+
+  // Recent bookings
+  const { data: recentBks } = await db.from('bookings').select('*').order('created_at',{ascending:false}).limit(5);
+  document.getElementById('dash-bookings').innerHTML = (recentBks||[]).length
+    ? (recentBks||[]).map(b=>`
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:12px;font-weight:600;">${b.customer_name||'Customer'}</div><div style="font-size:10px;color:var(--text3);">${b.service_name||''} • ${b.booking_date||''}</div></div>
+        <div class="flex aic gap2"><span style="font-size:12px;font-weight:700;">₹${b.price||0}</span><span class="badge ${b.status==='confirmed'?'bg':b.status==='cancelled'?'br':'ba'}">${b.status}</span></div>
+      </div>`).join('')
+    : '<div class="empty"><i class="fa-solid fa-calendar-xmark"></i><p>No bookings yet</p></div>';
+
+  // Pending approvals
+  const { data: pendingSalons } = await db.from('salons').select('id,name,phone,category').eq('status','pending').limit(5);
+  document.getElementById('dash-approvals').innerHTML = (pendingSalons||[]).length
+    ? (pendingSalons||[]).map(s=>`
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:12px;font-weight:600;">${s.name}</div><div style="font-size:10px;color:var(--text3);">${s.phone} • ${s.category||''}</div></div>
+        <button class="btn btn-sm btn-green" onclick="approveSalon('${s.id}')"><i class="fa-solid fa-check"></i> Approve</button>
+      </div>`).join('')
+    : '<div class="empty"><i class="fa-solid fa-circle-check"></i><p>All clear!</p></div>';
+}
+
+/* ═══════════════════════════════════════════════
+   SALONS
+═══════════════════════════════════════════════ */
+async function loadSalons() {
+  let q = db.from('salons').select('*').order('created_at',{ascending:false});
+  const f = document.getElementById('salon-status-filter')?.value;
+  if (f) q = q.eq('status', f);
+  const { data } = await q;
+  salonCache = data || [];
+  renderSalons(salonCache);
+}
+
+function filterSalons(v) {
+  renderSalons(salonCache.filter(s => (s.name||'').toLowerCase().includes(v.toLowerCase()) || (s.phone||'').includes(v)));
+}
+
+function renderSalons(list) {
+  const tb = document.getElementById('salon-tbody');
+  if (!list.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty"><i class="fa-solid fa-shop"></i><p>No salons found</p></div></td></tr>`; return; }
+  tb.innerHTML = list.map(s => `
+    <tr>
+      <td><div style="font-weight:700;font-size:12px;">${s.name}</div><div style="font-size:10px;color:var(--text3);">${s.owner_name||''}</div></td>
+      <td><span class="badge bgr">${s.category||'—'}</span> <span class="badge bgr">${s.salon_type||''}</span></td>
+      <td><span class="mono" style="font-size:11px;">${s.phone||'—'}</span></td>
+      <td style="font-size:11px;color:var(--text3);">${s.onboarded_by||'—'}</td>
+      <td>
+        <div class="flex aic gap2">
+          <span class="mono" style="font-size:12px;font-weight:700;">₹${s.booking_fee||0}</span>
+          <button class="btn btn-sm btn-ghost" onclick="setSalonFee('${s.id}','${s.name}',${s.booking_fee||0})"><i class="fa-solid fa-pen"></i></button>
+        </div>
+      </td>
+      <td><span class="badge ${s.status==='approved'?'bg':s.status==='blocked'?'br':'ba'}">${s.status||'pending'}</span></td>
+      <td>
+        <div class="flex gap2">
+          <button class="btn btn-sm btn-ghost" onclick="viewSalon('${s.id}')"><i class="fa-solid fa-eye"></i></button>
+          ${s.status==='pending' ? `<button class="btn btn-sm btn-green" onclick="approveSalon('${s.id}')"><i class="fa-solid fa-check"></i></button>` : ''}
+          ${s.status==='approved' ? `<button class="btn btn-sm btn-amber" onclick="blockSalon('${s.id}','block')"><i class="fa-solid fa-ban"></i></button>` : ''}
+          ${s.status==='blocked'  ? `<button class="btn btn-sm btn-blue" onclick="blockSalon('${s.id}','unblock')"><i class="fa-solid fa-unlock"></i></button>` : ''}
+          <button class="btn btn-sm btn-red" onclick="deleteSalon('${s.id}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function approveSalon(id) {
+  await db.from('salons').update({status:'approved'}).eq('id',id);
+  toast('✅ Salon approved!'); loadSalons(); loadDashboard();
+}
+async function blockSalon(id, action) {
+  await db.from('salons').update({status: action==='block'?'blocked':'approved'}).eq('id',id);
+  toast(action==='block'?'🚫 Salon blocked':'✅ Salon unblocked'); loadSalons();
+}
+async function deleteSalon(id) {
+  if (!confirm('Yeh salon permanently delete karein? Yeh action undo nahi hoga!')) return;
+  await db.from('salons').delete().eq('id',id);
+  toast('🗑️ Salon deleted','red'); loadSalons();
+}
+
+function setSalonFee(id, name, cur) {
+  const amt = prompt(`"${name}" ke liye per-booking fee set karein (current: ₹${cur}):`, cur);
+  if (amt === null) return;
+  const n = parseFloat(amt);
+  if (isNaN(n) || n < 0) return alert('Valid amount enter karein');
+  db.from('salons').update({booking_fee: n}).eq('id',id).then(() => { toast(`✅ Fee ₹${n} set!`); loadSalons(); });
+}
+
+async function viewSalon(id) {
+  const { data: s } = await db.from('salons').select('*').eq('id',id).single();
+  if (!s) return;
+  document.getElementById('m-salon-body').innerHTML = `
+    <div class="fg"><label class="flabel">Salon Name</label><div style="font-size:14px;font-weight:700;">${s.name}</div></div>
+    <div class="g2">
+      <div class="fg"><label class="flabel">Owner</label><div style="font-size:12px;">${s.owner_name||'—'}</div></div>
+      <div class="fg"><label class="flabel">Phone</label><div class="mono" style="font-size:12px;">${s.phone||'—'}</div></div>
+      <div class="fg"><label class="flabel">Category</label><div style="font-size:12px;">${s.category||'—'}</div></div>
+      <div class="fg"><label class="flabel">Type</label><div style="font-size:12px;">${s.salon_type||'—'}</div></div>
+      <div class="fg"><label class="flabel">Owner ID</label><div class="mono" style="font-size:11px;">${s.owner_id||'—'}</div></div>
+      <div class="fg"><label class="flabel">UTR</label><div class="mono" style="font-size:11px;">${s.utr_number||'—'}</div></div>
+      <div class="fg"><label class="flabel">Booking Fee</label><div style="font-size:14px;font-weight:700;color:var(--amber);">₹${s.booking_fee||0}</div></div>
+      <div class="fg"><label class="flabel">Status</label><span class="badge ${s.status==='approved'?'bg':s.status==='blocked'?'br':'ba'}">${s.status||'pending'}</span></div>
+    </div>
+    <div class="fg"><label class="flabel">Agent (Onboarded By)</label><div class="mono" style="font-size:12px;">${s.onboarded_by||'—'}</div></div>
+    <div class="flex gap2" style="margin-top:6px;">
+      ${s.status!=='approved'?`<button class="btn btn-green" onclick="approveSalon('${s.id}');closeM('m-salon')"><i class="fa-solid fa-check"></i> Approve</button>`:''}
+      ${s.status==='approved'?`<button class="btn btn-amber" onclick="blockSalon('${s.id}','block');closeM('m-salon')"><i class="fa-solid fa-ban"></i> Block</button>`:''}
+    </div>`;
+  openM('m-salon');
+}
+
+/* ═══════════════════════════════════════════════
+   CUSTOMERS
+═══════════════════════════════════════════════ */
+async function loadCustomers() {
+  const { data } = await db.from('customers').select('*').order('created_at',{ascending:false});
+  custCache = data || [];
+  renderCustomers(custCache);
+}
+function filterCustomers(v) {
+  renderCustomers(custCache.filter(c => (c.name||'').toLowerCase().includes(v.toLowerCase()) || (c.phone||'').includes(v)));
+}
+async function renderCustomers(list) {
+  const tb = document.getElementById('cust-tbody');
+  if (!list.length) { tb.innerHTML=`<tr><td colspan="6"><div class="empty"><i class="fa-solid fa-users"></i><p>No customers</p></div></td></tr>`; return; }
+  // fetch booking counts
+  const ids = list.map(c=>c.id);
+  const { data: bks } = await db.from('bookings').select('id,customer_id').in('customer_id',ids);
+  const bkMap = {};
+  (bks||[]).forEach(b => { bkMap[b.customer_id] = (bkMap[b.customer_id]||0) + 1; });
+
+  tb.innerHTML = list.map(c=>`
+    <tr>
+      <td><div style="font-weight:700;font-size:12px;">${c.name||'—'}</div></td>
+      <td><span class="mono" style="font-size:11px;">${c.phone||'—'}</span></td>
+      <td style="font-size:11px;color:var(--text3);">${c.email||'—'}</td>
+      <td><span class="badge bb">${bkMap[c.id]||0} bookings</span></td>
+      <td><span class="badge ${c.is_blocked?'br':'bg'}">${c.is_blocked?'Blocked':'Active'}</span></td>
+      <td>
+        <div class="flex gap2">
+          ${c.is_blocked
+            ? `<button class="btn btn-sm btn-green" onclick="toggleCustomer('${c.id}',false)"><i class="fa-solid fa-unlock"></i> Unblock</button>`
+            : `<button class="btn btn-sm btn-red" onclick="toggleCustomer('${c.id}',true)"><i class="fa-solid fa-ban"></i> Block</button>`}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+async function toggleCustomer(id, block) {
+  await db.from('customers').update({is_blocked:block}).eq('id',id);
+  toast(block?'🚫 Customer blocked':'✅ Customer unblocked'); loadCustomers();
+}
+
+/* ═══════════════════════════════════════════════
+   AGENTS
+═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   CREATE AGENT
+═══════════════════════════════════════════════ */
+function generatePartnerId(name, phone) {
+  const prefix = 'AGT';
+  const namePart = (name || '').replace(/\s+/g,'').toUpperCase().slice(0,3).padEnd(3,'X');
+  const phonePart = (phone || '').slice(-4);
+  const rand = Math.floor(100 + Math.random() * 900);
+  return `${prefix}${namePart}${phonePart}${rand}`;
+}
+
+function generatePassword(name, phone) {
+  const namePart = (name || '').split(' ')[0].slice(0,4).toLowerCase();
+  const phonePart = (phone || '').slice(-4);
+  const symbols = ['@','#','!','$'];
+  const sym = symbols[Math.floor(Math.random() * symbols.length)];
+  return `${namePart}${phonePart}${sym}${Math.floor(10+Math.random()*90)}`;
+}
+
+let caLastCreds = {};
+
+async function createAgent() {
+  const phone = document.getElementById('ca-phone').value.trim();
+  const name  = document.getElementById('ca-name').value.trim();
+  const city  = document.getElementById('ca-city').value.trim();
+  const errEl = document.getElementById('ca-err');
+  errEl.style.display = 'none';
+
+  if (!phone || phone.length !== 10) { errEl.style.display='block'; errEl.textContent='❌ Valid 10-digit mobile number daalo!'; return; }
+  if (!name) { errEl.style.display='block'; errEl.textContent='❌ Agent ka naam daalo!'; return; }
+  if (!city) { errEl.style.display='block'; errEl.textContent='❌ City daalo!'; return; }
+
+  // Check duplicate phone
+  const { data: existing } = await db.from('agents').select('partner_id').eq('phone', phone);
+  if (existing && existing.length > 0) { errEl.style.display='block'; errEl.textContent='❌ Is mobile number se agent already exist karta hai!'; return; }
+
+  const btn = document.getElementById('ca-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+
+  const partner_id = generatePartnerId(name, phone);
+  const password   = generatePassword(name, phone);
+
+  const { error } = await db.from('agents').insert([{
+    partner_id,
+    name,
+    phone,
+    city,
+    password,
+    wallet_balance: 0,
+    created_at: new Date().toISOString()
+  }]);
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Agent';
+
+  if (error) { errEl.style.display='block'; errEl.textContent='❌ Error: ' + (error.message || 'Try again!'); return; }
+
+  // Show success
+  caLastCreds = { name, city, uid: partner_id, pass: password };
+  document.getElementById('ca-res-name').textContent = name;
+  document.getElementById('ca-res-city').textContent = city;
+  document.getElementById('ca-res-uid').textContent  = partner_id;
+  document.getElementById('ca-res-pass').textContent = password;
+  document.getElementById('ca-form-state').style.display    = 'none';
+  document.getElementById('ca-success-state').style.display = 'block';
+  toast('✅ Agent created successfully!');
+}
+
+function resetCreateAgent() {
+  document.getElementById('ca-phone').value = '';
+  document.getElementById('ca-name').value  = '';
+  document.getElementById('ca-city').value  = '';
+  document.getElementById('ca-err').style.display = 'none';
+  document.getElementById('ca-form-state').style.display    = 'block';
+  document.getElementById('ca-success-state').style.display = 'none';
+  caLastCreds = {};
+}
+
+function copyAgentCreds() {
+  const text = `Salon AI — Agent Credentials\nName: ${caLastCreds.name}\nCity: ${caLastCreds.city}\nUser ID: ${caLastCreds.uid}\nPassword: ${caLastCreds.pass}`;
+  navigator.clipboard.writeText(text).then(() => toast('📋 Credentials copied!')).catch(() => toast('Copy failed, manually copy karein','red'));
+}
+
+/* ═══════════════════════════════════════════════
+   AGENTS
+═══════════════════════════════════════════════ */
+async function loadAgents() {
+  const { data: agents } = await db.from('agents').select('*').order('created_at',{ascending:false});
+  const { data: salons  } = await db.from('salons').select('id,onboarded_by');
+  const { data: comms   } = await db.from('commissions').select('partner_id,amount');
+  const { data: wdrs    } = await db.from('withdrawals').select('partner_id,amount,status');
+
+  const salonMap = {};
+  (salons||[]).forEach(s => { salonMap[s.onboarded_by] = (salonMap[s.onboarded_by]||0)+1; });
+
+  const commMap = {};
+  (comms||[]).forEach(c => { commMap[c.partner_id] = (commMap[c.partner_id]||0)+(c.amount||0); });
+
+  const wdrMap = {};
+  (wdrs||[]).filter(w=>w.status==='paid').forEach(w => { wdrMap[w.partner_id] = (wdrMap[w.partner_id]||0)+(w.amount||0); });
+
+  const tb = document.getElementById('agent-tbody');
+  if (!(agents||[]).length) { tb.innerHTML=`<tr><td colspan="8"><div class="empty"><i class="fa-solid fa-user-tie"></i><p>No agents</p></div></td></tr>`; return; }
+  tb.innerHTML = (agents||[]).map(a=>`
+    <tr>
+      <td><div style="font-weight:700;font-size:12px;">${a.name||a.partner_id}</div><div style="font-size:10px;color:var(--text3);">${a.city||''}</div></td>
+      <td><span class="mono badge bgr" style="font-size:10px;">${a.partner_id}</span></td>
+      <td><span class="badge bb">${salonMap[a.partner_id]||0}</span></td>
+      <td style="font-weight:700;color:var(--green);">₹${commMap[a.partner_id]||0}</td>
+      <td style="font-weight:700;color:var(--amber);">₹${wdrMap[a.partner_id]||0}</td>
+      <td style="font-weight:700;font-size:14px;">₹${a.wallet_balance||0}</td>
+      <td><span class="badge ${a.status==='blocked'?'br':'bg'}">${a.status==='blocked'?'Blocked':'Active'}</span></td>
+      <td>
+        <div class="flex gap2">
+          <button class="btn btn-sm btn-ghost" onclick="viewAgent('${a.partner_id}')" title="View"><i class="fa-solid fa-eye"></i></button>
+          <button class="btn btn-sm btn-blue" onclick="viewWithdrawals('${a.partner_id}','${(a.name||a.partner_id).replace(/'/g,"\'")}')"><i class="fa-solid fa-wallet"></i></button>
+          ${a.status==='blocked'
+            ? `<button class="btn btn-sm btn-green" onclick="toggleAgentBlock('${a.partner_id}','unblock')"><i class="fa-solid fa-unlock"></i></button>`
+            : `<button class="btn btn-sm btn-amber" onclick="toggleAgentBlock('${a.partner_id}','block')"><i class="fa-solid fa-ban"></i></button>`}
+          <button class="btn btn-sm btn-red" onclick="deleteAgent('${a.partner_id}','${(a.name||a.partner_id).replace(/'/g,"\'")}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function toggleAgentBlock(pid, action) {
+  const newStatus = action === 'block' ? 'blocked' : 'active';
+  await db.from('agents').update({ status: newStatus }).eq('partner_id', pid);
+  toast(action === 'block' ? '🚫 Agent blocked!' : '✅ Agent unblocked!');
+  loadAgents();
+}
+
+async function deleteAgent(pid, name) {
+  if (!confirm(`"${name}" ko permanently delete karein? Yeh action undo nahi hoga!`)) return;
+  await db.from('agents').delete().eq('partner_id', pid);
+  toast('🗑️ Agent deleted', 'red');
+  loadAgents();
+}
+
+async function viewAgent(pid) {
+  const { data: a } = await db.from('agents').select('*').eq('partner_id',pid).single();
+  const { data: bk } = await db.from('agent_bank_accounts').select('*').eq('partner_id',pid);
+  if (!a) return;
+  document.getElementById('m-agent-body').innerHTML = `
+    <div class="g2 mb4">
+      <div class="fg"><label class="flabel">Name</label><div style="font-size:13px;font-weight:700;">${a.name||'—'}</div></div>
+      <div class="fg"><label class="flabel">Partner ID</label><div class="mono" style="font-size:12px;">${a.partner_id}</div></div>
+      <div class="fg"><label class="flabel">Phone</label><div class="mono">${a.phone||'—'}</div></div>
+      <div class="fg"><label class="flabel">Wallet Balance</label><div style="font-size:16px;font-weight:700;color:var(--green);">₹${a.wallet_balance||0}</div></div>
+    </div>
+    <div class="fg"><label class="flabel">Bank / Payment Details</label>
+      ${(bk||[]).length ? (bk||[]).map(b=>`
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;font-size:11px;">
+          <div class="flex jb aic"><span class="badge ${b.type==='upi'?'bv':'bb'}">${b.type}</span>${b.is_primary?'<span class="badge bg">Primary</span>':''}</div>
+          ${b.type==='upi'?`<div style="margin-top:6px;font-weight:700;">${b.upi_id||'—'}</div><div style="color:var(--text3);">${b.holder_name||''}</div>`
+          :`<div style="margin-top:6px;font-weight:700;">${b.holder_name||'—'}</div><div class="mono">${b.account_no||'—'} • ${b.ifsc||''}</div><div style="color:var(--text3);">${b.bank_name||''}</div>`}
+        </div>`).join('')
+      : '<div style="font-size:11px;color:var(--text3);">No bank details added</div>'}
+    </div>`;
+  openM('m-agent');
+}
+
+async function viewWithdrawals(pid, name) {
+  const { data: wdrs } = await db.from('withdrawals').select('*').eq('partner_id',pid).order('created_at',{ascending:false});
+  document.getElementById('m-withdraw-body').innerHTML = `
+    <div style="font-size:13px;font-weight:700;margin-bottom:14px;color:var(--text2);">${name} — Withdrawal Requests</div>
+    ${(wdrs||[]).length ? (wdrs||[]).map(w=>`
+      <div class="tcard flex jb aic" style="margin-bottom:8px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;">₹${w.amount}</div>
+          <div style="font-size:10px;color:var(--text3);">${new Date(w.created_at).toLocaleDateString('en-IN')}</div>
+        </div>
+        <div class="flex aic gap2">
+          <span class="badge ${w.status==='paid'?'bg':w.status==='rejected'?'br':'ba'}">${w.status}</span>
+          ${w.status==='pending'?`
+            <button class="btn btn-sm btn-green" onclick="processWithdrawal('${w.id}','paid','${pid}',${w.amount})"><i class="fa-solid fa-check"></i> Pay</button>
+            <button class="btn btn-sm btn-red" onclick="processWithdrawal('${w.id}','rejected','${pid}',${w.amount})"><i class="fa-solid fa-xmark"></i></button>
+          `:''}
+        </div>
+      </div>`).join('')
+    : '<div class="empty"><i class="fa-solid fa-wallet"></i><p>No withdrawal requests</p></div>'}`;
+  openM('m-withdraw');
+}
+
+async function processWithdrawal(wid, status, pid, amount) {
+  await db.from('withdrawals').update({status}).eq('id',wid);
+  if (status === 'rejected') {
+    // Refund balance back to agent
+    const { data: ag } = await db.from('agents').select('wallet_balance').eq('partner_id',pid).single();
+    await db.from('agents').update({wallet_balance:(ag?.wallet_balance||0)+amount}).eq('partner_id',pid);
+  }
+  toast(status==='paid'?'✅ Payment marked as paid!':'❌ Withdrawal rejected'); 
+  viewWithdrawals(pid,'Agent'); loadAgents();
+}
+
+/* ═══════════════════════════════════════════════
+   BOOKINGS
+═══════════════════════════════════════════════ */
+async function loadBookings() {
+  const f = document.getElementById('bk-filter')?.value;
+  let q = db.from('bookings').select('*').order('created_at',{ascending:false}).limit(100);
+  if (f) q = q.eq('status',f);
+  const { data } = await q;
+  const tb = document.getElementById('bk-tbody');
+  if (!(data||[]).length) { tb.innerHTML=`<tr><td colspan="9"><div class="empty"><i class="fa-solid fa-calendar-xmark"></i><p>No bookings</p></div></td></tr>`; return; }
+  tb.innerHTML = (data||[]).map((b,i)=>`
+    <tr>
+      <td style="font-size:10px;color:var(--text3);" class="mono">#${i+1}</td>
+      <td><div style="font-size:12px;font-weight:600;">${b.customer_name||'—'}</div><div style="font-size:10px;color:var(--text3);">${b.customer_phone||''}</div></td>
+      <td style="font-size:11px;">${b.salon_name||b.salon_id?.slice(0,8)||'—'}</td>
+      <td style="font-size:11px;">${b.service_name||'—'}</td>
+      <td style="font-size:11px;" class="mono">${b.booking_date||''} ${b.booking_time||''}</td>
+      <td style="font-weight:700;">₹${b.price||0}</td>
+      <td class="mono" style="font-size:10px;color:var(--amber);">${b.utr_id||'—'}</td>
+      <td><span class="badge ${b.status==='confirmed'?'bg':b.status==='cancelled'?'br':'ba'}">${b.status==='pending_admin'||b.status==='pending'?'⏳ UTR Pending':b.status}</span></td>
+      <td>
+        ${(b.status==='pending_admin'||b.status==='pending')?`
+          <button class="btn btn-sm btn-green" onclick="adminApproveBooking('${b.id}','${b.salon_id}')"><i class="fa-solid fa-check"></i> Approve</button>
+          <button class="btn btn-sm btn-red" style="margin-top:4px;" onclick="adminRejectBooking('${b.id}')"><i class="fa-solid fa-xmark"></i> Reject</button>
+        `:''}
+        ${b.status==='cancelled'&&!b.refund_processed?`<button class="btn btn-sm btn-violet" onclick="openRefund('${b.id}',${b.price||0},'${b.booking_date||''}','${b.booking_time||''}')"><i class="fa-solid fa-rotate-left"></i> Refund</button>`:''}
+        ${b.refund_processed?`<span class="badge bg">Refunded</span>`:''}
+        ${b.status==='confirmed'?`<span style="font-size:10px;color:var(--green);">✅ OK</span>`:''}
+      </td>
+    </tr>`).join('');
+}
+
+// UTR VERIFY PAGE
+async function loadUtrVerify() {
+  const el = document.getElementById('utr-list');
+  const { data, error } = await db.from('bookings').select('*').in('status',['pending_admin','pending']).order('created_at',{ascending:false});
+  
+  // Update badge
+  const badge = document.getElementById('utr-badge');
+  const count = (data||[]).length;
+  if (count > 0) { badge.style.display='inline-flex'; badge.textContent=count; }
+  else { badge.style.display='none'; }
+
+  if (!data || data.length === 0) {
+    el.innerHTML = `<div class="empty" style="padding:60px 0;text-align:center;"><i class="fa-solid fa-shield-check" style="font-size:40px;color:var(--green);opacity:0.4;"></i><p style="margin-top:12px;color:var(--text3);">Koi pending UTR nahi!</p></div>`;
+    return;
+  }
+
+  el.innerHTML = data.map(b => {
+    const hasUTR = b.utr_id && b.utr_id.trim() !== '';
+    const hasService = b.service_name && b.service_name.trim() !== '';
+    const hasAmount = b.price && b.price > 0;
+    return `
+    <div class="card" style="margin-bottom:16px;border-left:4px solid var(--amber);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div style="flex:1;min-width:200px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:700;">${b.customer_name||'—'}</div>
+            <span style="color:var(--text3);font-size:11px;">${b.customer_phone||''}</span>
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:rgba(251,191,36,0.15);color:var(--amber);border:1px solid rgba(251,191,36,0.3);">⏳ UTR Pending</span>
+          </div>
+          <div style="font-size:11px;color:var(--text2);">Salon: <b>${b.salon_name||'—'}</b></div>
+          <div style="font-size:11px;color:var(--text2);">Service: ${hasService ? b.service_name : '<span style="color:var(--red);">Not found — purana booking</span>'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Date: ${b.booking_date||'—'} ${b.booking_time||''}</div>
+
+          <div style="margin-top:12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.4);border-radius:10px;padding:12px 16px;">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--amber);letter-spacing:2px;margin-bottom:6px;">UTR / Transaction ID</div>
+            <div style="font-family:monospace;font-size:20px;font-weight:900;color:white;letter-spacing:2px;">${hasUTR ? b.utr_id : '<span style="color:var(--red);font-size:12px;">UTR nahi mila</span>'}</div>
+          </div>
+
+          <div style="margin-top:10px;display:flex;align-items:center;gap:16px;">
+            <div style="font-size:18px;font-weight:800;color:var(--green);">₹${b.price||0}</div>
+            ${b.booking_code ? `<div style="font-size:11px;color:var(--blue);font-family:monospace;font-weight:700;">Code: ${b.booking_code}</div>` : ''}
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:130px;">
+          <button class="btn btn-green" onclick="adminApproveBooking('${b.id}','${b.salon_id}')">
+            <i class="fa-solid fa-check"></i> Approve UTR
+          </button>
+          <button class="btn btn-red" onclick="adminRejectBooking('${b.id}')">
+            <i class="fa-solid fa-xmark"></i> Reject / Fake
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function adminApproveBooking(bookingId, salonId) {
+  if (!confirm('UTR sahi hai? Booking confirm karein aur salon ko notify karein?')) return;
+  const { error } = await db.from('bookings').update({ status: 'confirmed', admin_verified: true, admin_verified_at: new Date().toISOString() }).eq('id', bookingId);
+  if (error) { toast('❌ Error: ' + error.message); return; }
+  // Insert salon notification
+  await db.from('salon_notifications').insert([{
+    salon_id: salonId,
+    booking_id: bookingId,
+    type: 'new_booking',
+    message: 'Naya booking confirm hua! Admin ne UTR verify kiya. Please accept karein.',
+    is_read: false
+  }]);
+  toast('✅ Booking approved! Salon ko notification bheja gaya.');
+  loadUtrVerify();
+  loadBookings();
+}
+
+async function adminRejectBooking(bookingId) {
+  const reason = prompt('Rejection reason (e.g. Fake UTR, Payment not received):');
+  if (!reason) return;
+  const { error } = await db.from('bookings').update({ status: 'cancelled', rejection_reason: reason, admin_verified: false }).eq('id', bookingId);
+  if (error) { toast('❌ Error: ' + error.message); return; }
+  toast('❌ Booking rejected — customer ko inform karein.');
+  loadUtrVerify();
+  loadBookings();
+}
+
+async function openRefund(bid, price, date, time) {
+  // Load cancellation policy
+  const { data: settings } = await db.from('app_settings').select('cancel_policy').eq('id',1).single();
+  const policy = settings?.cancel_policy || {h24:100,h12:75,h6:50,h0:0};
+
+  const bookingDT = new Date(`${date}T${time||'00:00'}`);
+  const diffHrs = (bookingDT - new Date()) / 3.6e6;
+  let refundPct = policy.h0;
+  if (diffHrs > 24) refundPct = policy.h24;
+  else if (diffHrs > 12) refundPct = policy.h12;
+  else if (diffHrs > 6) refundPct = policy.h6;
+  const refundAmt = Math.round((price * refundPct) / 100);
+
+  document.getElementById('m-refund-body').innerHTML = `
+    <div class="warn-box"><i class="fa-solid fa-triangle-exclamation"></i> Refund amount admin ke policy ke hisaab se auto-calculate hua hai.</div>
+    <div class="g2 mb4">
+      <div><div class="flabel">Booking Amount</div><div style="font-size:18px;font-weight:700;">₹${price}</div></div>
+      <div><div class="flabel">Refund %</div><div style="font-size:18px;font-weight:700;color:var(--green);">${refundPct}%</div></div>
+    </div>
+    <div class="fg"><label class="flabel">Refund Amount</label>
+      <input type="number" id="ref-amt" value="${refundAmt}" style="font-size:18px;font-weight:700;">
+    </div>
+    <div class="fg"><label class="flabel">Refund Note</label>
+      <textarea id="ref-note" placeholder="Refund reason / transaction ID..." rows="2"></textarea>
+    </div>
+    <button class="btn btn-green" style="width:100%;" onclick="processRefund('${bid}')"><i class="fa-solid fa-rotate-left"></i> Process Refund</button>`;
+  openM('m-refund');
+}
+
+async function processRefund(bid) {
+  const amt  = parseFloat(document.getElementById('ref-amt').value) || 0;
+  const note = document.getElementById('ref-note').value.trim();
+  await db.from('bookings').update({refund_processed:true, refund_amount:amt, refund_note:note}).eq('id',bid);
+  toast('✅ Refund processed!'); closeM('m-refund'); loadBookings();
+}
+
+/* ═══════════════════════════════════════════════
+   SALON PAYMENTS (Daily Settlement)
+═══════════════════════════════════════════════ */
+async function loadPayments() {
+  const { data: bks } = await db.from('bookings').select('*').eq('status','confirmed').order('booking_date',{ascending:false});
+  const { data: settings } = await db.from('app_settings').select('salon_commission_per_booking').eq('id',1).single();
+  const commPerBk = settings?.salon_commission_per_booking || 5;
+
+  // Group by salon + date
+  const groups = {};
+  (bks||[]).forEach(b => {
+    const key = `${b.salon_id}__${b.booking_date}`;
+    if (!groups[key]) groups[key] = { salon_id:b.salon_id, salon_name:b.salon_name||b.salon_id?.slice(0,8)||'Salon', date:b.booking_date, bookings:[], paid:b.payment_settled||false };
+    groups[key].bookings.push(b);
+    groups[key].paid = groups[key].paid && b.payment_settled;
+  });
+
+  const rows = Object.values(groups);
+  const tb = document.getElementById('pay-tbody');
+  if (!rows.length) { tb.innerHTML=`<tr><td colspan="8"><div class="empty"><i class="fa-solid fa-money-bill"></i><p>No payments yet</p></div></td></tr>`; return; }
+  tb.innerHTML = rows.map(g=>{
+    const gross = g.bookings.reduce((s,b)=>s+(b.price||0),0);
+    const comm  = g.bookings.length * commPerBk;
+    const net   = gross - comm;
+    return `<tr>
+      <td style="font-weight:700;font-size:12px;">${g.salon_name}</td>
+      <td class="mono" style="font-size:11px;">${g.date||'—'}</td>
+      <td><span class="badge bb">${g.bookings.length}</span></td>
+      <td style="font-weight:700;">₹${gross}</td>
+      <td style="color:var(--red);">-₹${comm}</td>
+      <td style="font-weight:700;font-size:14px;color:var(--green);">₹${net}</td>
+      <td><span class="badge ${g.bookings[0].payment_settled?'bg':'ba'}">${g.bookings[0].payment_settled?'Settled':'Pending'}</span></td>
+      <td>${!g.bookings[0].payment_settled?`<button class="btn btn-sm btn-green" onclick="settleSalon('${g.salon_id}','${g.date}')"><i class="fa-solid fa-check"></i> Settle</button>`:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function settleSalon(sid, date) {
+  await db.from('bookings').update({payment_settled:true}).eq('salon_id',sid).eq('booking_date',date).eq('status','confirmed');
+  toast('✅ Payment settled!'); loadPayments();
+}
+
+/* ═══════════════════════════════════════════════
+   AGENT PAYOUTS
+═══════════════════════════════════════════════ */
+async function loadAgentPay() {
+  const { data: settings } = await db.from('app_settings').select('agent_payment_day').eq('id',1).single();
+  const payDay = settings?.agent_payment_day || 'Not set';
+  const { data: agents } = await db.from('agents').select('*').order('wallet_balance',{ascending:false});
+  const { data: wdrs } = await db.from('withdrawals').select('*').eq('status','pending').order('created_at',{ascending:false});
+
+  document.getElementById('agentpay-content').innerHTML = `
+    <div class="info-box" style="margin-bottom:16px;"><i class="fa-solid fa-calendar-week"></i> Weekly payment day: <b>${payDay}</b>. Agent withdrawal requests yahan dikhenge.</div>
+
+    <div class="g2 mb4">
+      <div class="stat-card amber"><div class="slabel">Pending Withdrawals</div><div class="svalue">${(wdrs||[]).length}</div><div class="ssub">Awaiting approval</div><i class="fa-solid fa-wallet sicon"></i></div>
+      <div class="stat-card green"><div class="slabel">Total Agent Balances</div><div class="svalue">₹${(agents||[]).reduce((s,a)=>s+(a.wallet_balance||0),0)}</div><div class="ssub">Across all agents</div><i class="fa-solid fa-indian-rupee-sign sicon"></i></div>
+    </div>
+
+    <div class="card mb4">
+      <div class="card-head"><span class="card-title"><i class="fa-solid fa-clock" style="color:var(--amber)"></i> Pending Withdrawal Requests</span></div>
+      <div class="card-body">
+        ${(wdrs||[]).length ? (wdrs||[]).map(w=>`
+          <div class="tcard flex jb aic" style="margin-bottom:8px;">
+            <div>
+              <div style="font-size:13px;font-weight:700;">₹${w.amount} <span class="mono badge bgr" style="font-size:10px;">${w.partner_id}</span></div>
+              <div style="font-size:10px;color:var(--text3);">${new Date(w.created_at).toLocaleDateString('en-IN')}</div>
+            </div>
+            <div class="flex gap2">
+              <button class="btn btn-sm btn-green" onclick="processWithdrawal('${w.id}','paid','${w.partner_id}',${w.amount})"><i class="fa-solid fa-check"></i> Pay</button>
+              <button class="btn btn-sm btn-red" onclick="processWithdrawal('${w.id}','rejected','${w.partner_id}',${w.amount})"><i class="fa-solid fa-xmark"></i> Reject</button>
+            </div>
+          </div>`).join('')
+        : '<div class="empty"><i class="fa-solid fa-circle-check"></i><p>No pending requests</p></div>'}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-title"><i class="fa-solid fa-user-tie" style="color:var(--blue)"></i> All Agent Balances</span></div>
+      <div class="twrap">
+        <table><thead><tr><th>Agent</th><th>Partner ID</th><th>Wallet Balance</th><th>Action</th></tr></thead>
+        <tbody>${(agents||[]).map(a=>`
+          <tr>
+            <td style="font-weight:700;font-size:12px;">${a.name||a.partner_id}</td>
+            <td><span class="mono badge bgr">${a.partner_id}</span></td>
+            <td style="font-size:16px;font-weight:700;color:var(--green);">₹${a.wallet_balance||0}</td>
+            <td><button class="btn btn-sm btn-ghost" onclick="viewWithdrawals('${a.partner_id}','${a.name||a.partner_id}')"><i class="fa-solid fa-history"></i> History</button></td>
+          </tr>`).join('')}
+        </tbody></table>
+      </div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   TICKETS
+═══════════════════════════════════════════════ */
+async function loadTicketBadge() {
+  const { count } = await db.from('tickets').select('id',{count:'exact',head:true}).eq('status','open');
+  const badge = document.getElementById('ticket-badge');
+  if (count > 0) { badge.textContent = count; badge.style.display='inline'; }
+  else badge.style.display = 'none';
+}
+
+async function loadTickets() {
+  let q = db.from('tickets').select('*').order('created_at',{ascending:false});
+  const type = document.getElementById('tkt-type')?.value;
+  const status = document.getElementById('tkt-status')?.value;
+  if (type) q = q.eq('raised_by', type);
+  if (status) q = q.eq('status', status);
+  const { data } = await q;
+  const el = document.getElementById('ticket-list');
+
+  if (!(data||[]).length) { el.innerHTML=`<div class="empty"><i class="fa-solid fa-ticket"></i><p>No tickets found</p></div>`; return; }
+  el.innerHTML = (data||[]).map(t=>`
+    <div class="tcard">
+      <div class="flex jb aic" style="margin-bottom:6px;">
+        <div>
+          <span class="mono badge bgr" style="font-size:9px;margin-right:6px;">#${t.id.slice(0,8).toUpperCase()}</span>
+          <span class="badge ${t.raised_by==='customer'?'bb':'bv'}">${t.raised_by||'customer'}</span>
+          <span class="badge ${t.status==='open'?'ba':'bg'}" style="margin-left:4px;">${t.status}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text3);">${new Date(t.created_at).toLocaleDateString('en-IN')}</div>
+      </div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${t.subject||'No subject'}</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;">${t.message||'—'}</div>
+      ${t.status==='open'?`
+      <div class="flex gap2">
+        <button class="btn btn-sm btn-blue" onclick="openResolveTicket('${t.id}')"><i class="fa-solid fa-reply"></i> Resolve</button>
+        <button class="btn btn-sm btn-ghost" onclick="closeTicket('${t.id}')"><i class="fa-solid fa-xmark"></i> Close</button>
+      </div>`:t.resolution?`<div style="background:var(--gdim);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:8px 12px;font-size:11px;color:#6ee7b7;"><b>Resolution:</b> ${t.resolution}</div>`:''}
+    </div>`).join('');
+}
+
+function openResolveTicket(tid) {
+  document.getElementById('m-ticket-body').innerHTML = `
+    <div class="fg"><label class="flabel">Resolution / Reply</label>
+      <textarea id="res-msg" placeholder="Customer/Salon ko kya jawab dena hai..." rows="4"></textarea>
+    </div>
+    <button class="btn btn-green" style="width:100%;" onclick="resolveTicket('${tid}')"><i class="fa-solid fa-check"></i> Mark Resolved & Send Reply</button>`;
+  openM('m-ticket');
+}
+async function resolveTicket(tid) {
+  const msg = document.getElementById('res-msg').value.trim();
+  if (!msg) return alert('Resolution message likhein!');
+  await db.from('tickets').update({status:'resolved', resolution:msg, resolved_at: new Date().toISOString()}).eq('id',tid);
+  toast('✅ Ticket resolved!'); closeM('m-ticket'); loadTickets(); loadTicketBadge();
+}
+async function closeTicket(tid) {
+  await db.from('tickets').update({status:'closed'}).eq('id',tid);
+  toast('Ticket closed'); loadTickets();
+}
+
+/* ═══════════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════════ */
+async function loadSettings() {
+  const { data } = await db.from('app_settings').select('*').eq('id',1).single();
+  if (!data) return;
+  if (data.support_whatsapp) document.getElementById('s-support-wa').value = data.support_whatsapp;
+  // Load category-wise QRs
+  const qrUrls = data.payment_qr_urls || {};
+  const setQR = (k, val) => {
+    const el = document.getElementById('qr-' + k);
+    if (el && val) {
+      el.value = val;
+      const prev = document.getElementById('qr-prev-' + k);
+      if (prev) { prev.style.display='block'; prev.querySelector('img').src = val; }
+    }
+  };
+  setQR('salon-nonac',   qrUrls.salon?.nonac);
+  setQR('salon-ac',      qrUrls.salon?.ac);
+  setQR('salon-luxury',  qrUrls.salon?.luxury);
+  setQR('parlour-nonac', qrUrls.parlour?.nonac);
+  setQR('parlour-ac',    qrUrls.parlour?.ac);
+  setQR('parlour-luxury',qrUrls.parlour?.luxury);
+  if (data.payment_upi_id) document.getElementById('s-upi').value     = data.payment_upi_id;
+  if (data.payment_name)   document.getElementById('s-payname').value  = data.payment_name;
+  if (data.agent_commission !== undefined) document.getElementById('s-agent-comm').value = data.agent_commission;
+
+  // Onboarding fees (category-wise)
+  const ob = data.onboarding_fees || {};
+  const obDef = {salon:{nonac:499,ac:999,luxury:1499},parlour:{nonac:699,ac:1199,luxury:1999}};
+  const obF = (cat,tier) => (ob[cat]||{})[tier] ?? obDef[cat][tier];
+  document.getElementById('ob-salon-nonac').value    = obF('salon','nonac');
+  document.getElementById('ob-salon-ac').value       = obF('salon','ac');
+  document.getElementById('ob-salon-luxury').value   = obF('salon','luxury');
+  document.getElementById('ob-parlour-nonac').value  = obF('parlour','nonac');
+  document.getElementById('ob-parlour-ac').value     = obF('parlour','ac');
+  document.getElementById('ob-parlour-luxury').value = obF('parlour','luxury');
+
+  // Booking fees (category-wise, salon side)
+  const bf = data.booking_fees || {};
+  const bfDef = {
+    salon_from_salon:{nonac:5,ac:10,luxury:10},
+    parlour_from_salon:{nonac:10,ac:15,luxury:15},
+    salon_from_cust:{nonac:10,ac:10,luxury:10},
+    parlour_from_cust:{nonac:10,ac:10,luxury:10}
+  };
+  const bfF = (key,tier) => (bf[key]||{})[tier] ?? bfDef[key][tier];
+  document.getElementById('bf-salon-nonac-salon').value    = bfF('salon_from_salon','nonac');
+  document.getElementById('bf-salon-ac-salon').value       = bfF('salon_from_salon','ac');
+  document.getElementById('bf-salon-luxury-salon').value   = bfF('salon_from_salon','luxury');
+  document.getElementById('bf-parlour-nonac-salon').value  = bfF('parlour_from_salon','nonac');
+  document.getElementById('bf-parlour-ac-salon').value     = bfF('parlour_from_salon','ac');
+  document.getElementById('bf-parlour-luxury-salon').value = bfF('parlour_from_salon','luxury');
+  document.getElementById('bf-salon-nonac-cust').value     = bfF('salon_from_cust','nonac');
+  document.getElementById('bf-salon-ac-cust').value        = bfF('salon_from_cust','ac');
+  document.getElementById('bf-salon-luxury-cust').value    = bfF('salon_from_cust','luxury');
+  document.getElementById('bf-parlour-nonac-cust').value   = bfF('parlour_from_cust','nonac');
+  document.getElementById('bf-parlour-ac-cust').value      = bfF('parlour_from_cust','ac');
+  document.getElementById('bf-parlour-luxury-cust').value  = bfF('parlour_from_cust','luxury');
+
+  // Cancel policy
+  const p = data.cancel_policy || {};
+  if (p.h24 !== undefined) document.getElementById('pol-24').value = p.h24;
+  if (p.h12 !== undefined) document.getElementById('pol-12').value = p.h12;
+  if (p.h6  !== undefined) document.getElementById('pol-6').value  = p.h6;
+  if (p.h0  !== undefined) document.getElementById('pol-0').value  = p.h0;
+  // Payment day
+  selPayDay = data.agent_payment_day || '';
+  buildDayButtons();
+}
+
+function buildDayButtons() {
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  document.getElementById('day-btns').innerHTML = days.map(d=>
+    `<button class="day-btn ${selPayDay===d?'sel':''}" id="daybtn-${d}" onclick="selectDay('${d}')">${d.slice(0,3)}</button>`
+  ).join('');
+  document.getElementById('sel-day').textContent = selPayDay || '—';
+}
+function selectDay(d) {
+  selPayDay = d;
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById(`daybtn-${d}`)?.classList.add('sel');
+  document.getElementById('sel-day').textContent = d;
+}
+
+async function upsertSettings(updates) {
+  const { data: existing } = await db.from('app_settings').select('id').eq('id',1).single();
+  if (existing) await db.from('app_settings').update(updates).eq('id',1);
+  else await db.from('app_settings').insert([{id:1, ...updates}]);
+}
+
+async function saveSupportWhatsApp() {
+  const num = document.getElementById('s-support-wa').value.trim().replace(/\D/g,'');
+  if (!num || num.length < 10) return alert('Valid 10-digit number daalo!');
+  await upsertSettings({ support_whatsapp: num });
+  toast('✅ Support WhatsApp saved!');
+}
+
+async function saveQRSettings() {
+  const g = id => document.getElementById(id)?.value.trim() || '';
+  await upsertSettings({
+    payment_qr_urls: {
+      salon:   { nonac: g('qr-salon-nonac'),   ac: g('qr-salon-ac'),   luxury: g('qr-salon-luxury') },
+      parlour: { nonac: g('qr-parlour-nonac'), ac: g('qr-parlour-ac'), luxury: g('qr-parlour-luxury') }
+    },
+    payment_upi_id: g('s-upi'),
+    payment_name:   g('s-payname'),
+  });
+  // Show previews
+  ['salon-nonac','salon-ac','salon-luxury','parlour-nonac','parlour-ac','parlour-luxury'].forEach(k => {
+    const url = g('qr-' + k);
+    const prev = document.getElementById('qr-prev-' + k);
+    if (prev) {
+      if (url) { prev.style.display='block'; prev.querySelector('img').src = url; }
+      else { prev.style.display='none'; }
+    }
+  });
+  toast('✅ Saare QR saved!');
+}
+
+async function saveAgentComm() {
+  await upsertSettings({ agent_commission: parseFloat(document.getElementById('s-agent-comm').value)||200 });
+  toast('✅ Agent commission saved!');
+}
+
+async function saveOnboardingFees() {
+  const v = id => parseFloat(document.getElementById(id).value)||0;
+  await upsertSettings({
+    onboarding_fees: {
+      salon:   { nonac: v('ob-salon-nonac'),    ac: v('ob-salon-ac'),       luxury: v('ob-salon-luxury') },
+      parlour: { nonac: v('ob-parlour-nonac'),  ac: v('ob-parlour-ac'),     luxury: v('ob-parlour-luxury') }
+    }
+  });
+  toast('✅ Onboarding fees saved!');
+}
+
+async function saveBookingFees() {
+  const v = id => parseFloat(document.getElementById(id).value)||0;
+  await upsertSettings({
+    booking_fees: {
+      salon_from_salon:   { nonac: v('bf-salon-nonac-salon'),    ac: v('bf-salon-ac-salon'),    luxury: v('bf-salon-luxury-salon') },
+      parlour_from_salon: { nonac: v('bf-parlour-nonac-salon'),  ac: v('bf-parlour-ac-salon'),  luxury: v('bf-parlour-luxury-salon') },
+      salon_from_cust:    { nonac: v('bf-salon-nonac-cust'),     ac: v('bf-salon-ac-cust'),     luxury: v('bf-salon-luxury-cust') },
+      parlour_from_cust:  { nonac: v('bf-parlour-nonac-cust'),   ac: v('bf-parlour-ac-cust'),   luxury: v('bf-parlour-luxury-cust') }
+    }
+  });
+  toast('✅ Booking fees saved!');
+}
+
+async function saveFeeSettings() {
+  // Legacy fallback — redirects to new save functions
+  await saveOnboardingFees();
+  await saveBookingFees();
+}
+
+async function saveCancelPolicy() {
+  const policy = {
+    h24: parseFloat(document.getElementById('pol-24').value)||100,
+    h12: parseFloat(document.getElementById('pol-12').value)||75,
+    h6:  parseFloat(document.getElementById('pol-6').value)||50,
+    h0:  parseFloat(document.getElementById('pol-0').value)||0,
+  };
+  await upsertSettings({ cancel_policy: policy });
+  toast('✅ Cancellation policy saved!');
+}
+
+async function savePayDay() {
+  if (!selPayDay) return alert('Pehle ek din select karein!');
+  await upsertSettings({ agent_payment_day: selPayDay });
+  toast(`✅ Payment day set: ${selPayDay}`);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Salon Partner — Customer App</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Salon Partner">
+    <meta name="theme-color" content="#2D7A50">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js');
+        });
+      }
+    </script>
+    <style>
+        :root {
+            --gp: #1B5E37; --gm: #2D7A50; --gl: #4CAF7A; --gg: rgba(45,122,80,0.25);
+            --gold: #C9922B; --gold-l: #E8B84B;
+            --bg: #0D1F14; --card: rgba(20,45,28,0.55); --card2: rgba(15,35,22,0.7);
+            --border: rgba(45,122,80,0.22); --muted: #6B9E80;
+        }
+        * { box-sizing: border-box; }
+        body { font-family:'Nunito',sans-serif; background:var(--bg); color:#fff; overflow-x:hidden; margin:0; }
+        .app { max-width:450px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; padding-bottom:100px; }
+        .app::before { content:''; position:fixed; top:0; left:50%; transform:translateX(-50%); width:450px; height:100vh;
+            background: radial-gradient(ellipse at 20% 10%,rgba(27,94,55,0.35) 0%,transparent 55%),
+                        radial-gradient(ellipse at 80% 60%,rgba(45,122,80,0.18) 0%,transparent 50%);
+            pointer-events:none; z-index:0; }
+        .app > div { position:relative; z-index:1; }
+        .glass { background:var(--card); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border:1px solid var(--border); border-radius:1.5rem; }
+        .glass2 { background:var(--card2); backdrop-filter:blur(14px); border:1px solid rgba(45,122,80,0.15); border-radius:1.2rem; }
+        .btn-g { background:linear-gradient(135deg,var(--gm),var(--gp)); color:white; border:none; border-radius:1.2rem; font-weight:800; font-family:'Nunito',sans-serif; cursor:pointer; transition:all .18s; box-shadow:0 4px 20px rgba(27,94,55,0.4); }
+        .btn-g:active { transform:scale(0.97); }
+        .btn-gold { background:linear-gradient(135deg,var(--gold-l),var(--gold)); color:#1a0a00; border:none; border-radius:1.2rem; font-weight:800; cursor:pointer; transition:all .18s; }
+        .inp { width:100%; background:rgba(20,45,28,0.5)!important; border:1.5px solid rgba(45,122,80,0.3)!important; color:white!important; border-radius:1.2rem; padding:16px 20px; font-size:14px; font-weight:600; font-family:'Nunito',sans-serif; outline:none; transition:border-color .2s; }
+        .inp::placeholder { color:var(--muted); }
+        .inp:focus { border-color:var(--gl)!important; }
+        .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:450px; background:rgba(10,25,15,0.95); backdrop-filter:blur(20px); border-top:1px solid rgba(45,122,80,0.25); padding:10px 0 20px; display:flex; justify-content:space-around; align-items:center; z-index:100; }
+        .nav-btn { display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; background:none; border:none; cursor:pointer; transition:all .18s; padding:6px 14px; border-radius:12px; }
+        .nav-btn i { font-size:19px; }
+        .nav-btn.active { color:var(--gl); }
+        .nav-btn.active i { filter:drop-shadow(0 0 6px rgba(76,175,122,0.7)); }
+        .badge { padding:3px 10px; border-radius:20px; font-size:9px; font-weight:800; letter-spacing:.05em; }
+        .bg { background:rgba(45,122,80,0.2); color:#4CAF7A; border:1px solid rgba(45,122,80,0.4); }
+        .bgold { background:rgba(201,146,43,0.15); color:#E8B84B; border:1px solid rgba(201,146,43,0.35); }
+        .bblue { background:rgba(99,102,241,0.12); color:#818cf8; border:1px solid rgba(99,102,241,0.25); }
+        .bpink { background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.25); }
+        .borg  { background:rgba(251,146,60,0.12); color:#fb923c; border:1px solid rgba(251,146,60,0.25); }
+        .bopen { background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); }
+        .filter-btn { padding:9px 14px; border-radius:20px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; border:1.5px solid rgba(45,122,80,0.2); background:rgba(20,45,28,0.4); color:var(--muted); cursor:pointer; transition:all .18s; font-family:'Nunito',sans-serif; white-space:nowrap; }
+        .filter-btn.active-g { background:rgba(45,122,80,0.25); color:#4CAF7A; border-color:var(--gm); }
+        .filter-btn.active-gold { background:rgba(201,146,43,0.2); color:#E8B84B; border-color:var(--gold); }
+        .filter-btn.active-b { background:rgba(99,102,241,0.2); color:#818cf8; border-color:#6366f1; }
+        .filter-btn.active-r { background:rgba(239,68,68,0.2); color:#f87171; border-color:#ef4444; }
+        .salon-card { background:rgba(18,40,24,0.6); backdrop-filter:blur(14px); border:1px solid rgba(45,122,80,0.2); border-radius:1.5rem; padding:16px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:all .18s; }
+        .salon-card:active { transform:scale(0.98); border-color:var(--gl); }
+        .shimmer { background:linear-gradient(90deg,rgba(45,122,80,0.06) 25%,rgba(45,122,80,0.12) 50%,rgba(45,122,80,0.06) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:1.5rem; }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        .cat-tabs { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+        .cat-tabs::-webkit-scrollbar { display:none; }
+        .cat-tab { flex-shrink:0; padding:9px 18px; border-radius:30px; font-size:11px; font-weight:800; border:1.5px solid rgba(45,122,80,0.22); background:rgba(20,45,28,0.4); color:var(--muted); cursor:pointer; font-family:'Nunito',sans-serif; transition:all .18s; }
+        .cat-tab.active { background:rgba(45,122,80,0.3); color:#4CAF7A; border-color:var(--gm); }
+        .slot-box { padding:10px 8px; border-radius:10px; font-size:9px; font-weight:800; text-align:center; cursor:pointer; transition:all .18s; border:1px solid transparent; font-family:'Nunito',sans-serif; }
+        .slot-free { background:rgba(52,211,153,0.1); color:#34d399; border-color:rgba(52,211,153,0.3); }
+        .slot-free:hover { background:rgba(52,211,153,0.25); }
+        .slot-taken { background:rgba(239,68,68,0.08); color:#475569; border-color:rgba(239,68,68,0.15); cursor:not-allowed; }
+        .slot-selected { background:rgba(45,122,80,0.4); color:#4CAF7A; border-color:var(--gl); box-shadow:0 0 12px rgba(76,175,122,0.3); }
+        .svc-item { background:rgba(20,45,28,0.5); border:1.5px solid rgba(45,122,80,0.2); border-radius:1rem; padding:14px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all .18s; }
+        .svc-item.selected { border-color:var(--gl); background:rgba(45,122,80,0.15); }
+        .top-bar { display:flex; align-items:center; justify-content:space-between; padding:20px 16px 10px; }
+        .location-bar { margin:0 16px 12px; padding:12px 16px; background:rgba(20,45,28,0.5); border:1px solid rgba(45,122,80,0.25); border-radius:1.2rem; display:flex; align-items:center; justify-content:space-between; }
+        .radius-tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
+        .radius-tabs::-webkit-scrollbar { display:none; }
+        ::-webkit-scrollbar { width:3px; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:3px; }
+        .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:500; display:flex; align-items:flex-end; justify-content:center; }
+        .modal-box { background:#0D1F14; border-radius:2rem 2rem 0 0; padding:1.8rem; width:100%; max-width:450px; border-top:1px solid rgba(45,122,80,0.3); max-height:90vh; overflow-y:auto; }
+        .top-safe { padding-top: env(safe-area-inset-top, 0px); }
+    </style>
+</head>
+<body>
+<div id="app" class="app"></div>
+
+<!-- BOTTOM NAV TEMPLATE (reused across pages) -->
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG — Change your Supabase URL and KEY here
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://mlflkkcvbnfuhcoojcmv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_izxuZIgnWWe13aUwQ5quPw_Kg99ioy4';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ─── STATE ───
+let currentUser = JSON.parse(localStorage.getItem('salonCustomer')) || null;
+let _salonsCache = [];
+let _activeCat = 'all';
+let _activeRadius = 15;
+let _openNowOnly = false;
+let _searchQuery = '';
+let cart = [];
+let selectedSlot = null;
+let _bookingPollTimer = null;
+let _appSettings = null;
+
+// ─── BOTTOM NAV HTML ───
+const NAV = (active) => `
+<nav class="bottom-nav">
+  <button class="nav-btn ${active==='home'?'active':''}" onclick="renderHome()"><i class="fas fa-home"></i><span>Home</span></button>
+  <button class="nav-btn ${active==='search'?'active':''}" onclick="renderSearch()"><i class="fas fa-search"></i><span>Search</span></button>
+  <button class="nav-btn ${active==='bookings'?'active':''}" onclick="renderBookings()"><i class="fas fa-calendar-alt"></i><span>Bookings</span></button>
+  <button class="nav-btn" onclick="openWhatsApp()"><i class="fab fa-whatsapp" style="color:#25d366;font-size:20px;"></i><span>Help</span></button>
+  <button class="nav-btn ${active==='profile'?'active':''}" onclick="renderProfile()"><i class="fas fa-user"></i><span>Profile</span></button>
+</nav>`;
+
+// ─── INIT ───
+async function init() {
+    _appSettings = await loadSettings();
+    _activeRadius = _appSettings?.max_radius_km || 15;
+    if (!currentUser) renderLogin();
+    else renderHome();
+}
+
+async function loadSettings() {
+    try {
+        const { data } = await sb.from('app_settings').select('*').eq('id',1).single();
+        return data;
+    } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUTH SCREENS
+// ═══════════════════════════════════════════════════════════
+function renderLogin() {
+    document.getElementById('app').innerHTML = `
+    <div style="padding:40px 24px 60px;">
+        <div style="text-align:center;margin-bottom:40px;">
+            <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--gm),var(--gp));border-radius:2rem;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:36px;box-shadow:0 8px 32px rgba(27,94,55,0.5);">✂️</div>
+            <h1 style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;margin-bottom:4px;">Salon <span style="color:var(--gl);">Partner</span></h1>
+            <p style="color:var(--muted);font-size:12px;font-weight:600;">Premium style at your fingertips ✨</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <input type="tel" id="l-phone" placeholder="Phone Number" class="inp">
+            <input type="password" id="l-pass" placeholder="Password" class="inp">
+            <button onclick="handleLogin()" class="btn-g" style="width:100%;padding:18px;font-size:14px;margin-top:4px;">🔑 Login</button>
+            <div style="display:flex;justify-content:space-between;padding:0 4px;margin-top:6px;">
+                <button onclick="renderForgotPass()" style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;background:none;border:none;cursor:pointer;">Forgot Password?</button>
+                <button onclick="renderSignup()" style="font-size:10px;font-weight:800;color:var(--gl);text-transform:uppercase;letter-spacing:.08em;background:none;border:none;cursor:pointer;">Create Account →</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderForgotPass() {
+    document.getElementById('app').innerHTML = `
+    <div style="padding:40px 24px;">
+        <button onclick="renderLogin()" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-bottom:20px;font-size:13px;font-weight:700;">← Back</button>
+        <h2 style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px;">Reset <span style="color:var(--gl);">Password</span></h2>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:24px;">Enter phone number to reset</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <input type="tel" id="fp-phone" placeholder="Registered Phone" class="inp">
+            <input type="password" id="fp-newpass" placeholder="New Password" class="inp">
+            <button onclick="handleForgotPass()" class="btn-g" style="width:100%;padding:18px;font-size:14px;">Reset Password</button>
+        </div>
+    </div>`;
+}
+
+async function handleForgotPass() {
+    const phone = document.getElementById('fp-phone').value.trim();
+    const newpass = document.getElementById('fp-newpass').value.trim();
+    if (!phone || !newpass) return showToast('Fill all fields','red');
+    const { data, error } = await sb.from('customers').update({ password: newpass }).eq('phone', phone).select();
+    if (error || !data?.length) return showToast('Phone not found', 'red');
+    showToast('Password reset! Please login.');
+    renderLogin();
+}
+
+function renderSignup() {
+    window._gender = '';
+    document.getElementById('app').innerHTML = `
+    <div style="padding:36px 24px 60px;">
+        <button onclick="renderLogin()" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-bottom:20px;font-size:13px;font-weight:700;">← Back</button>
+        <h2 style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;margin-bottom:6px;">Join <span style="color:var(--gl);">Elite</span></h2>
+        <p style="color:var(--muted);font-size:12px;font-weight:600;margin-bottom:28px;">Premium style at your fingertips</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+            <input type="text" id="r-name" placeholder="Apna naam..." class="inp">
+            <input type="tel" id="r-phone" placeholder="Phone Number" class="inp">
+            <input type="password" id="r-pass" placeholder="Password" class="inp">
+            <p style="font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">Gender</p>
+            <div style="display:flex;gap:10px;">
+                <button id="g-m" onclick="setGender('Male',this)" class="filter-btn" style="flex:1;padding:14px;">👨 Male</button>
+                <button id="g-f" onclick="setGender('Female',this)" class="filter-btn" style="flex:1;padding:14px;">👩 Female</button>
+            </div>
+            <button onclick="handleSignup()" class="btn-g" style="width:100%;padding:18px;font-size:14px;margin-top:6px;">Register →</button>
+        </div>
+    </div>`;
+}
+
+function setGender(val, btn) {
+    window._gender = val;
+    document.querySelectorAll('#g-m,#g-f').forEach(b => { b.classList.remove('active-g'); });
+    btn.classList.add('active-g');
+}
+
+async function handleLogin() {
+    const phone = document.getElementById('l-phone').value.trim();
+    const pass = document.getElementById('l-pass').value.trim();
+    if (!phone || !pass) return showToast('Fill all fields', 'red');
+    const { data, error } = await sb.from('customers').select('*').eq('phone', phone).single();
+    if (error || !data) return showToast('Account not found', 'red');
+    if (data.status === 'blocked') return showToast('Account blocked. Contact support.', 'red');
+    if (data.password !== pass) return showToast('Wrong password', 'red');
+    localStorage.setItem('salonCustomer', JSON.stringify(data));
+    currentUser = data;
+    renderHome();
+}
+
+async function handleSignup() {
+    const name = document.getElementById('r-name').value.trim();
+    const phone = document.getElementById('r-phone').value.trim();
+    const pass = document.getElementById('r-pass').value.trim();
+    const gender = window._gender;
+    if (!name || !phone || !pass || !gender) return showToast('Fill all fields', 'red');
+    const { data, error } = await sb.from('customers').insert([{ name, phone, password: pass, gender }]).select();
+    if (error) {
+        if (error.code === '23505') showToast('Number already registered!', 'red');
+        else showToast('Error: ' + error.message, 'red');
+        return;
+    }
+    showToast('Account created! Please login.');
+    renderLogin();
+}
+
+function logout() {
+    localStorage.removeItem('salonCustomer');
+    localStorage.removeItem('userLat');
+    localStorage.removeItem('userLon');
+    localStorage.removeItem('locationAsked');
+    currentUser = null;
+    location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOCATION
+// ═══════════════════════════════════════════════════════════
+function getUserLocation() {
+    const lat = parseFloat(localStorage.getItem('userLat'));
+    const lon = parseFloat(localStorage.getItem('userLon'));
+    if (lat && lon && !isNaN(lat) && !isNaN(lon)) return Promise.resolve({ lat, lon });
+    return new Promise(resolve => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+            p => {
+                localStorage.setItem('userLat', p.coords.latitude);
+                localStorage.setItem('userLon', p.coords.longitude);
+                resolve({ lat: p.coords.latitude, lon: p.coords.longitude });
+            },
+            () => resolve(null),
+            { timeout: 8000, enableHighAccuracy: true }
+        );
+    });
+}
+
+async function getCityFromCoords(lat, lon) {
+    try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+        const d = await r.json();
+        return d?.address?.city || d?.address?.town || d?.address?.village || d?.address?.county || '';
+    } catch { return ''; }
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+    const toR = d => d * Math.PI / 180;
+    const R = 6371;
+    const dLat = toR(lat2 - lat1), dLon = toR(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toR(lat1)) * Math.cos(toR(lat2)) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function fmtDist(km) {
+    if (km === null || km === undefined) return '';
+    if (km < 1) return Math.round(km * 1000) + ' m';
+    return km.toFixed(1) + ' km';
+}
+
+function isOpenNow(salon) {
+    const now = new Date();
+    const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()];
+    const days = salon.working_days || [];
+    if (!days.includes(day)) return false;
+    const cur = now.getHours() * 60 + now.getMinutes();
+    const [oh, om] = (salon.open_time || '09:00').split(':').map(Number);
+    const [ch, cm] = (salon.close_time || '20:00').split(':').map(Number);
+    return cur >= oh * 60 + om && cur <= ch * 60 + cm;
+}
+
+// ═══════════════════════════════════════════════════════════
+// HOME PAGE
+// ═══════════════════════════════════════════════════════════
+async function renderHome() {
+    document.getElementById('app').innerHTML = `
+    <div>
+        <!-- TOP BAR -->
+        <div class="top-bar">
+            <div>
+                <p style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:2px;">Welcome Back</p>
+                <div style="font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;">Salon <span style="color:var(--gl);">Partner</span></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button onclick="referFriend()" style="width:40px;height:40px;border-radius:14px;background:rgba(20,45,28,0.6);border:1px solid var(--border);color:var(--gl);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">🎁</button>
+                <button onclick="logout()" style="width:40px;height:40px;border-radius:14px;background:rgba(20,45,28,0.6);border:1px solid var(--border);color:#f87171;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-power-off"></i></button>
+            </div>
+        </div>
+
+        <!-- LOCATION BAR -->
+        <div class="location-bar">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">📍</span>
+                <div>
+                    <p id="city-label" style="font-size:11px;font-weight:800;color:white;margin-bottom:1px;">Location detect ho rahi hai...</p>
+                    <p style="font-size:10px;color:var(--muted);font-weight:600;">${currentUser.name}</p>
+                </div>
+            </div>
+            <button onclick="changeLocation()" style="font-size:11px;font-weight:800;color:var(--gl);background:none;border:none;cursor:pointer;">Badlein ›</button>
+        </div>
+
+        <div style="padding:0 16px;">
+
+            <!-- SEARCH BAR -->
+            <div style="background:rgba(20,45,28,0.5);border:1.5px solid rgba(45,122,80,0.25);border-radius:1.2rem;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <i class="fas fa-search" style="color:var(--muted);font-size:15px;"></i>
+                <input id="main-search" type="text" placeholder="City, area, pincode ya salon naam..." 
+                    oninput="onSearch(this.value)"
+                    style="background:transparent;border:none;color:white;flex:1;font-size:13px;font-weight:600;font-family:'Nunito',sans-serif;outline:none;">
+            </div>
+
+            <!-- RADIUS FILTER -->
+            <div style="margin-bottom:12px;">
+                <p style="font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;">📡 Distance Radius</p>
+                <div class="radius-tabs">
+                    ${[5,10,15,20].map(r => `
+                    <button id="rad-${r}" onclick="setRadius(${r})" 
+                        class="filter-btn ${r===_activeRadius?'active-g':''}" style="padding:8px 16px;">
+                        ${r} km
+                    </button>`).join('')}
+                </div>
+            </div>
+
+            <!-- FILTERS ROW -->
+            <div style="display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;">
+                <button id="f-open" onclick="toggleOpenNow()" class="filter-btn ${_openNowOnly?'active-b':''}">
+                    🟢 Open Now
+                </button>
+                <button id="gf-male" class="filter-btn" onclick="setGenderF('Male')">👨 Male</button>
+                <button id="gf-female" class="filter-btn" onclick="setGenderF('Female')">👩 Female</button>
+                <button id="tf-ac" class="filter-btn" onclick="setTypeF('AC')">❄️ AC</button>
+                <button id="tf-luxury" class="filter-btn" onclick="setTypeF('Luxury')">👑 Luxury</button>
+            </div>
+
+            <!-- CATEGORY TABS -->
+            <div class="cat-tabs" style="margin-bottom:16px;">
+                <button class="cat-tab active" id="cat-all" onclick="setCat('all',this)">Sab Salons</button>
+                <button class="cat-tab" id="cat-unisex" onclick="setCat('Unisex',this)">Unisex 💇</button>
+                <button class="cat-tab" id="cat-ladies" onclick="setCat('Ladies',this)">Ladies 👩</button>
+                <button class="cat-tab" id="cat-gents" onclick="setCat('Gents',this)">Gents 👨</button>
+            </div>
+
+            <!-- SALON COUNT + MAP BUTTON -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <p id="salon-count" style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">Loading...</p>
+                <button onclick="openMapView()" style="font-size:10px;font-weight:800;color:var(--gl);background:rgba(45,122,80,0.1);border:1px solid rgba(45,122,80,0.25);border-radius:10px;padding:6px 12px;cursor:pointer;">🗺️ Map View</button>
+            </div>
+
+            <!-- SALON LIST -->
+            <div id="salon-list" style="display:flex;flex-direction:column;gap:12px;">
+                <div class="shimmer" style="height:90px;"></div>
+                <div class="shimmer" style="height:90px;"></div>
+                <div class="shimmer" style="height:90px;"></div>
+            </div>
+        </div>
+    </div>
+    ${NAV('home')}`;
+
+    // Load location + salons
+    loadHomeData();
+}
+
+let _activeGenderF = 'all';
+let _activeTypeF = 'all';
+
+function setGenderF(val) {
+    _activeGenderF = _activeGenderF === val ? 'all' : val;
+    document.querySelectorAll('#gf-male,#gf-female').forEach(b => b.classList.remove('active-g'));
+    if (_activeGenderF !== 'all') document.getElementById('gf-' + val.toLowerCase())?.classList.add('active-g');
+    applyFilters();
+}
+
+function setTypeF(val) {
+    _activeTypeF = _activeTypeF === val ? 'all' : val;
+    document.querySelectorAll('#tf-ac,#tf-luxury').forEach(b => b.classList.remove('active-g','active-gold'));
+    if (_activeTypeF !== 'all') {
+        const id = 'tf-' + val.toLowerCase();
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.add(val === 'Luxury' ? 'active-gold' : 'active-g');
+    }
+    applyFilters();
+}
+
+function toggleOpenNow() {
+    _openNowOnly = !_openNowOnly;
+    const btn = document.getElementById('f-open');
+    if (btn) btn.classList.toggle('active-b', _openNowOnly);
+    applyFilters();
+}
+
+function setRadius(r) {
+    _activeRadius = r;
+    document.querySelectorAll('[id^="rad-"]').forEach(b => b.classList.remove('active-g'));
+    document.getElementById('rad-' + r)?.classList.add('active-g');
+    applyFilters();
+}
+
+function setCat(val, btn) {
+    _activeCat = val;
+    document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
+}
+
+function onSearch(val) {
+    _searchQuery = val.toLowerCase().trim();
+    applyFilters();
+}
+
+async function loadHomeData() {
+    const userLoc = await getUserLocation();
+
+    // Update city label
+    if (userLoc) {
+        const city = await getCityFromCoords(userLoc.lat, userLoc.lon);
+        const lbl = document.getElementById('city-label');
+        if (lbl) lbl.textContent = city || 'Current Location';
+    } else {
+        const lbl = document.getElementById('city-label');
+        if (lbl) lbl.textContent = 'Location unavailable';
+    }
+
+    // Load salons from Supabase
+    const { data: salons, error } = await sb.from('salons').select('*').eq('status','approved');
+    if (error) {
+        document.getElementById('salon-list').innerHTML = `<p style="text-align:center;padding:40px 0;color:#f87171;font-size:11px;font-weight:800;text-transform:uppercase;">Database Error</p>`;
+        return;
+    }
+
+    // Calculate distances
+    _salonsCache = (salons || []).map(s => {
+        const dist = (userLoc && s.latitude && s.longitude)
+            ? haversine(userLoc.lat, userLoc.lon, parseFloat(s.latitude), parseFloat(s.longitude))
+            : null;
+        return { ...s, _dist: dist };
+    });
+
+    // Sort by distance
+    _salonsCache.sort((a, b) => {
+        if (a._dist === null) return 1;
+        if (b._dist === null) return -1;
+        return a._dist - b._dist;
+    });
+
+    applyFilters();
+}
+
+function applyFilters() {
+    let list = [..._salonsCache];
+    const userLat = parseFloat(localStorage.getItem('userLat'));
+    const userLon = parseFloat(localStorage.getItem('userLon'));
+
+    // Radius filter
+    if (userLat && userLon) {
+        list = list.filter(s => s._dist === null || s._dist <= _activeRadius);
+    }
+
+    // Search filter
+    if (_searchQuery) {
+        list = list.filter(s =>
+            (s.name||'').toLowerCase().includes(_searchQuery) ||
+            (s.city||'').toLowerCase().includes(_searchQuery) ||
+            (s.area||'').toLowerCase().includes(_searchQuery) ||
+            (s.pincode||'').includes(_searchQuery) ||
+            (s.address||'').toLowerCase().includes(_searchQuery)
+        );
+    }
+
+    // Category
+    if (_activeCat !== 'all') {
+        if (_activeCat === 'Ladies') list = list.filter(s => s.category === 'Beauty Parlour');
+        else if (_activeCat === 'Gents') list = list.filter(s => s.category === 'Salon');
+    }
+
+    // Gender filter
+    if (_activeGenderF === 'Male') list = list.filter(s => s.category === 'Salon');
+    if (_activeGenderF === 'Female') list = list.filter(s => s.category === 'Beauty Parlour');
+
+    // Type filter
+    if (_activeTypeF !== 'all') list = list.filter(s => s.salon_type === _activeTypeF);
+
+    // Open Now
+    if (_openNowOnly) list = list.filter(s => isOpenNow(s));
+
+    renderSalonList(list);
+}
+
+function renderSalonList(list) {
+    const el = document.getElementById('salon-list');
+    const countEl = document.getElementById('salon-count');
+    if (!el) return;
+
+    if (countEl) countEl.textContent = list.length ? `${list.length} salon${list.length > 1 ? 's' : ''} mila` : 'Koi salon nahi mila';
+
+    if (!list.length) {
+        el.innerHTML = `
+        <div style="text-align:center;padding:60px 0;">
+            <div style="font-size:40px;margin-bottom:12px;">📍</div>
+            <p style="color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;">Koi salon nahi mila</p>
+            <p style="color:#334155;font-size:11px;margin-top:8px;">Radius badhayein ya search change karein</p>
+            <button onclick="setRadius(20)" class="btn-g" style="padding:12px 24px;font-size:12px;margin-top:16px;">20 km Try Karein</button>
+        </div>`;
+        return;
+    }
+
+    el.innerHTML = list.map(s => {
+        const open = isOpenNow(s);
+        const distLabel = s._dist !== null ? `📍 ${fmtDist(s._dist)}` : '📍 Nearby';
+        const typeBadge = s.salon_type === 'AC' ? `<span class="badge bg">❄️ AC</span>` :
+                          s.salon_type === 'Luxury' ? `<span class="badge bgold">👑 Luxury</span>` :
+                          `<span class="badge" style="background:rgba(100,100,100,0.1);color:#64748b;border:1px solid rgba(100,100,100,0.2)">🌀 Non-AC</span>`;
+        const catBadge = s.category === 'Beauty Parlour' ? `<span class="badge bpink">💄 Parlour</span>` : `<span class="badge bblue">✂️ Salon</span>`;
+        const avatar = s.image_url
+            ? `<img src="${s.image_url}" alt="${s.name}" style="width:64px;height:64px;border-radius:16px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : '';
+        const fallback = `<div style="display:${s.image_url?'none':'flex'};width:64px;height:64px;background:linear-gradient(135deg,var(--gm),var(--gp));border-radius:16px;align-items:center;justify-content:center;color:white;font-size:22px;font-weight:900;flex-shrink:0;">${(s.name||'S')[0].toUpperCase()}</div>`;
+
+        return `
+        <div class="salon-card" onclick="openBooking('${s.id}')">
+            ${avatar}${fallback}
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:900;color:white;font-size:13px;font-family:'Poppins',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.area||''} ${s.city ? '• '+s.city : ''}</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                    <span style="color:var(--gold-l);font-size:10px;font-weight:800;">⭐ ${s.rating||'4.5'}</span>
+                    <span class="badge ${open?'bopen':''}  " style="${open?'':'background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);'}">${open?'● Open':'○ Closed'}</span>
+                    <span style="color:var(--gl);font-size:10px;font-weight:800;">${distLabel}</span>
+                </div>
+                <div style="display:flex;gap:4px;margin-top:6px;">${catBadge}${typeBadge}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:18px;font-weight:900;color:white;font-family:'Poppins',sans-serif;">₹${s.booking_fee||5}</div>
+                <div style="font-size:8px;color:var(--muted);font-weight:700;">fee</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function changeLocation() {
+    localStorage.removeItem('userLat');
+    localStorage.removeItem('userLon');
+    localStorage.removeItem('locationAsked');
+    renderHome();
+}
+
+function openMapView() {
+    const lat = localStorage.getItem('userLat') || '20.5937';
+    const lon = localStorage.getItem('userLon') || '78.9629';
+    // Build markers from cached salons
+    const markers = _salonsCache.filter(s => s.latitude && s.longitude && s._dist !== null && s._dist <= _activeRadius);
+    let markersStr = markers.map(s =>
+        `<Marker lat="${s.latitude}" lng="${s.longitude}" title="${encodeURIComponent(s.name)}"/>`
+    ).join('');
+    window.open(`https://www.google.com/maps/search/salons/@${lat},${lon},13z`, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH PAGE
+// ═══════════════════════════════════════════════════════════
+function renderSearch() {
+    document.getElementById('app').innerHTML = `
+    <div style="padding:24px 16px 120px;">
+        <h2 style="font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;margin-bottom:16px;">Salon <span style="color:var(--gl);">Dhundein</span></h2>
+        <div style="background:rgba(20,45,28,0.5);border:1.5px solid rgba(45,122,80,0.25);border-radius:1.2rem;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <i class="fas fa-search" style="color:var(--muted);"></i>
+            <input id="search-inp" type="text" placeholder="City, area, pincode..." 
+                oninput="searchSalons(this.value)"
+                style="background:transparent;border:none;color:white;flex:1;font-size:14px;font-weight:600;font-family:'Nunito',sans-serif;outline:none;" autofocus>
+        </div>
+        <div id="search-results" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="text-align:center;padding:40px 0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;">Type karo salons dhundne ke liye</p>
+        </div>
+    </div>
+    ${NAV('search')}`;
+}
+
+function searchSalons(query) {
+    const q = query.toLowerCase().trim();
+    const el = document.getElementById('search-results');
+    if (!el) return;
+    if (!q) { el.innerHTML = `<p style="text-align:center;padding:40px 0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;">Type karo salons dhundne ke liye</p>`; return; }
+    const list = _salonsCache.filter(s =>
+        (s.name||'').toLowerCase().includes(q) ||
+        (s.city||'').toLowerCase().includes(q) ||
+        (s.area||'').toLowerCase().includes(q) ||
+        (s.pincode||'').includes(q)
+    );
+    if (!list.length) { el.innerHTML = `<p style="text-align:center;padding:40px 0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;">Koi salon nahi mila</p>`; return; }
+    renderSalonList(list); // Reuse existing logic
+    // Actually render in search-results div
+    el.innerHTML = list.map(s => `
+        <div class="salon-card" onclick="openBooking('${s.id}')">
+            <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--gm),var(--gp));border-radius:14px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:900;flex-shrink:0;">${(s.name||'S')[0]}</div>
+            <div style="flex:1;">
+                <div style="font-weight:900;color:white;font-size:13px;">${s.name}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px;">${[s.area, s.city, s.pincode].filter(Boolean).join(' • ')}</div>
+                <div style="margin-top:4px;font-size:10px;color:var(--gl);font-weight:800;">${s._dist !== null ? fmtDist(s._dist) + ' away' : 'Nearby'}</div>
+            </div>
+        </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// BOOKING FLOW
+// ═══════════════════════════════════════════════════════════
+async function openBooking(salonId) {
+    cart = [];
+    selectedSlot = null;
+    const el = document.getElementById('app');
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:12px;"><div style="width:40px;height:40px;border:3px solid var(--gm);border-top-color:var(--gl);border-radius:50%;animation:spin .7s linear infinite;"></div><p style="color:var(--muted);font-size:11px;font-weight:800;">Loading...</p></div>`;
+
+    const { data: salon } = await sb.from('salons').select('*').eq('id', salonId).single();
+    const { data: services } = await sb.from('services').select('*').eq('salon_id', salonId).eq('is_active', true);
+
+    if (!salon) { showToast('Salon not found','red'); renderHome(); return; }
+    const fee = _appSettings?.commission_fee || 5;
+    const open = isOpenNow(salon);
+
+    el.innerHTML = `
+    <div style="padding:0 0 120px;">
+        <!-- HEADER IMAGE -->
+        <div style="height:200px;background:linear-gradient(135deg,var(--gm),var(--gp));position:relative;overflow:hidden;">
+            ${salon.image_url ? `<img src="${salon.image_url}" style="width:100%;height:100%;object-fit:cover;opacity:0.7;" onerror="this.remove()">` : ''}
+            <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(13,31,20,0.95))"></div>
+            <button onclick="renderHome()" style="position:absolute;top:20px;left:16px;width:40px;height:40px;background:rgba(0,0,0,0.4);border:none;color:white;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">←</button>
+            <div style="position:absolute;bottom:16px;left:16px;right:16px;">
+                <div style="display:flex;align-items:flex-end;gap:10px;">
+                    <div>
+                        <h2 style="font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;color:white;">${salon.name}</h2>
+                        <p style="font-size:11px;color:rgba(255,255,255,0.7);">${[salon.area, salon.city].filter(Boolean).join(', ')}</p>
+                    </div>
+                    <span class="badge ${open?'bopen':''}" style="${open?'':'background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);'}margin-left:auto;margin-bottom:4px;">${open?'● Open':'○ Closed'}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding:16px;">
+            <!-- SALON INFO -->
+            <div class="glass2" style="padding:14px;margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;">Info</span>
+                    <span style="font-size:10px;font-weight:800;color:var(--gl);">⭐ ${salon.rating||'4.5'}</span>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <span class="badge ${salon.category==='Beauty Parlour'?'bpink':'bblue'}">${salon.category}</span>
+                    <span class="badge ${salon.salon_type==='AC'?'bg':salon.salon_type==='Luxury'?'bgold':'borg'}">${salon.salon_type}</span>
+                    <span style="font-size:10px;font-weight:700;color:var(--muted);">⏰ ${salon.open_time||'09:00'} - ${salon.close_time||'20:00'}</span>
+                </div>
+                ${salon.phone ? `<a href="tel:${salon.phone}" style="display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--gl);font-size:11px;font-weight:800;text-decoration:none;">📞 ${salon.phone}</a>` : ''}
+                ${salon.latitude && salon.longitude ? `<a href="https://www.google.com/maps/dir/?api=1&destination=${salon.latitude},${salon.longitude}" target="_blank" style="display:flex;align-items:center;gap:8px;margin-top:6px;color:var(--gl);font-size:11px;font-weight:800;text-decoration:none;">🗺️ Directions</a>` : ''}
+            </div>
+
+            <!-- SERVICES -->
+            <p style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Services Select Karein</p>
+            ${services && services.length > 0 ? `
+            <div id="svc-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+                ${services.map(s => `
+                <div class="svc-item" id="svc-${s.id}" onclick="toggleService('${s.id}','${s.name.replace(/'/g,"\\'")}',${s.price},${s.duration||30})">
+                    <div style="flex:1;">
+                        <div style="font-weight:800;color:white;font-size:13px;">${s.name}</div>
+                        <div style="font-size:10px;color:var(--muted);margin-top:2px;">⏱️ ${s.duration||30} min</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:16px;font-weight:900;color:white;font-family:'Poppins',sans-serif;">₹${s.price}</div>
+                        <div id="svc-check-${s.id}" style="width:24px;height:24px;border-radius:50%;border:2px solid rgba(45,122,80,0.3);display:flex;align-items:center;justify-content:center;margin-left:auto;margin-top:4px;font-size:11px;transition:all .18s;"></div>
+                    </div>
+                </div>`).join('')}
+            </div>` : `<p style="text-align:center;color:var(--muted);font-size:11px;font-weight:800;margin-bottom:20px;padding:16px 0;">Koi service available nahi hai</p>`}
+
+            <!-- DATE PICKER -->
+            <p style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Date Chunein</p>
+            <input type="date" id="book-date" 
+                min="${new Date().toISOString().split('T')[0]}" 
+                value="${new Date().toISOString().split('T')[0]}"
+                onchange="loadSlots('${salonId}')"
+                class="inp" style="margin-bottom:16px;">
+
+            <!-- SLOTS -->
+            <p style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Slot Chunein</p>
+            <div id="slots-wrap">
+                <p style="color:var(--muted);font-size:11px;font-weight:700;padding:8px 0;">Date select karein...</p>
+            </div>
+
+            <!-- CART SUMMARY -->
+            <div id="cart-summary" style="display:none;margin-top:20px;" class="glass2" style="padding:16px;">
+                <div style="padding:16px;">
+                    <p style="font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">Order Summary</p>
+                    <div id="cart-items"></div>
+                    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+                        <span style="font-size:10px;color:var(--muted);font-weight:700;">Platform Fee</span>
+                        <span style="font-size:12px;font-weight:800;color:var(--gold-l);">₹${fee}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                        <span style="font-size:12px;font-weight:900;color:white;">Total</span>
+                        <span id="cart-total" style="font-size:18px;font-weight:900;color:white;font-family:'Poppins',sans-serif;">₹0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOOK BUTTON -->
+    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:450px;padding:16px;background:rgba(13,31,20,0.95);border-top:1px solid rgba(45,122,80,0.25);z-index:200;">
+        <button onclick="proceedPayment('${salonId}','${salon.name.replace(/'/g,"\\'")}',${fee})" class="btn-g" style="width:100%;padding:18px;font-size:14px;">
+            Booking Continue Karein →
+        </button>
+    </div>`;
+
+    // Auto-load slots for today
+    setTimeout(() => loadSlots(salonId), 100);
+}
+
+function toggleService(id, name, price, duration) {
+    const idx = cart.findIndex(i => i.id === id);
+    const checkEl = document.getElementById('svc-check-' + id);
+    const itemEl = document.getElementById('svc-' + id);
+    if (idx === -1) {
+        cart.push({ id, name, price, duration });
+        if (itemEl) itemEl.classList.add('selected');
+        if (checkEl) { checkEl.style.background = 'var(--gl)'; checkEl.style.borderColor = 'var(--gl)'; checkEl.innerHTML = '✓'; }
+    } else {
+        cart.splice(idx, 1);
+        if (itemEl) itemEl.classList.remove('selected');
+        if (checkEl) { checkEl.style.background = ''; checkEl.style.borderColor = 'rgba(45,122,80,0.3)'; checkEl.innerHTML = ''; }
+    }
+    updateCartUI();
+}
+
+function updateCartUI() {
+    const fee = _appSettings?.commission_fee || 5;
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    const summary = document.getElementById('cart-summary');
+    const itemsEl = document.getElementById('cart-items');
+    const totalEl = document.getElementById('cart-total');
+    if (!summary) return;
+    if (cart.length === 0) { summary.style.display = 'none'; return; }
+    summary.style.display = 'block';
+    if (itemsEl) itemsEl.innerHTML = cart.map(i =>
+        `<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:11px;color:white;font-weight:700;">${i.name}</span><span style="font-size:12px;font-weight:800;color:var(--gl);">₹${i.price}</span></div>`
+    ).join('');
+    if (totalEl) totalEl.textContent = '₹' + (total + fee);
+}
+
+async function loadSlots(salonId) {
+    const dateVal = document.getElementById('book-date')?.value;
+    if (!dateVal) return;
+    const wrap = document.getElementById('slots-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = `<p style="color:var(--muted);font-size:11px;font-weight:700;padding:8px 0;">Loading slots...</p>`;
+
+    const { data: salon } = await sb.from('salons').select('open_time,close_time,slot_duration,working_days').eq('id', salonId).single();
+    const { data: bookedSlots } = await sb.from('bookings').select('slot_time').eq('salon_id', salonId).eq('booking_date', dateVal).not('status','in','("cancelled","rejected")');
+    const { data: blocked } = await sb.from('blocked_slots').select('slot_time').eq('salon_id', salonId).like('slot_time', dateVal + '%');
+
+    const openH = parseInt((salon?.open_time||'09:00').split(':')[0]);
+    const closeH = parseInt((salon?.close_time||'20:00').split(':')[0]);
+    const dur = salon?.slot_duration || 30;
+
+    const takenTimes = new Set([
+        ...(bookedSlots||[]).map(b => b.slot_time),
+        ...(blocked||[]).map(b => b.slot_time)
+    ]);
+
+    const slots = [];
+    for (let h = openH; h < closeH; h++) {
+        for (let m = 0; m < 60; m += dur) {
+            const hh = String(h).padStart(2,'0');
+            const mm = String(m).padStart(2,'0');
+            const isoSlot = `${dateVal}T${hh}:${mm}:00`;
+            const taken = takenTimes.has(isoSlot);
+            slots.push({ time: `${hh}:${mm}`, iso: isoSlot, taken });
+        }
+    }
+
+    wrap.innerHTML = slots.length === 0 ? `<p style="color:var(--muted);font-size:11px;font-weight:700;padding:8px 0;">Aaj koi slot nahi</p>` :
+    `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+        ${slots.map(sl => `
+        <div class="slot-box ${sl.taken?'slot-taken':'slot-free'}" id="slot-${sl.iso.replace(/[:.]/g,'-')}"
+            onclick="${sl.taken?'':'selectSlot(\''+sl.iso+'\')'}">
+            ${sl.time}${sl.taken?'<br><span style="font-size:7px;">Taken</span>':''}
+        </div>`).join('')}
+    </div>`;
+}
+
+function selectSlot(iso) {
+    // Deselect previous
+    document.querySelectorAll('.slot-selected').forEach(el => {
+        el.classList.remove('slot-selected');
+        el.classList.add('slot-free');
+    });
+    selectedSlot = iso;
+    const id = 'slot-' + iso.replace(/[:.]/g, '-');
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('slot-free'); el.classList.add('slot-selected'); }
+}
+
+function proceedPayment(salonId, salonName, fee) {
+    if (cart.length === 0) return showToast('Koi service select nahi ki', 'red');
+    if (!document.getElementById('book-date')?.value) return showToast('Date select karein', 'red');
+    if (!selectedSlot) return showToast('Ek slot select karein', 'red');
+    const total = cart.reduce((s, i) => s + i.price, 0) + fee;
+    renderPaymentPage(salonId, salonName, total, selectedSlot, fee);
+}
+
+function renderPaymentPage(salonId, salonName, total, slot, fee) {
+    const upiId = _appSettings?.upi_id || 'salonai@upi';
+    const el = document.getElementById('app');
+    el.innerHTML = `
+    <div style="padding:28px 20px 120px;text-align:center;">
+        <button onclick="openBooking('${salonId}')" style="float:left;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;font-weight:700;margin-bottom:20px;">← Back</button>
+        <h2 style="font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px;clear:both;">Secure <span style="color:var(--gl);">Payment</span></h2>
+        <p style="color:var(--muted);font-size:11px;margin-bottom:24px;">UPI se payment karein</p>
+
+        <div class="glass" style="padding:24px;margin-bottom:20px;">
+            <p style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;">Scan UPI QR</p>
+            <div style="background:white;padding:12px;border-radius:1.2rem;display:inline-block;margin-bottom:16px;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(upiId)}&am=${total}&tn=SalonBooking" style="width:160px;height:160px;">
+            </div>
+            <p style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:16px;">UPI ID: <span style="color:var(--gl);font-weight:900;">${upiId}</span></p>
+            <div>
+                <p style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Total Amount</p>
+                <h3 style="font-size:40px;font-weight:900;color:white;font-family:'Poppins',sans-serif;">₹${total}</h3>
+                <p style="font-size:9px;color:var(--muted);margin-top:4px;">(Services + ₹${fee} platform fee)</p>
+            </div>
+        </div>
+
+        <div style="text-align:left;">
+            <p style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">UTR / Transaction ID</p>
+            <input type="text" id="utr-id" placeholder="12-DIGIT UTR NUMBER" class="inp" style="margin-bottom:14px;font-weight:900;letter-spacing:.1em;">
+            <p style="font-size:10px;color:var(--muted);margin-bottom:16px;">⚠️ Payment ke baad UTR number enter karein. Admin verify karega.</p>
+            <button onclick="processFinalBooking('${salonId}','${salonName.replace(/'/g,"\\'")}',${total},'${slot}',${fee})" class="btn-g" style="width:100%;padding:18px;font-size:14px;margin-bottom:10px;">✅ Verify & Confirm</button>
+            <button onclick="renderHome()" style="width:100%;padding:14px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;background:none;border:none;cursor:pointer;">Cancel</button>
+        </div>
+    </div>`;
+}
+
+function genCode() { return String(Math.floor(10000 + Math.random() * 90000)); }
+
+async function processFinalBooking(sid, sname, total, slot, fee) {
+    const utr = document.getElementById('utr-id')?.value.trim();
+    if (!utr || utr.length < 6) return showToast('Valid UTR enter karein', 'red');
+
+    const slotDate = slot.split('T')[0];
+    const slotTime = slot.split('T')[1];
+    const serviceNames = cart.map(i => i.name).join(', ');
+    const code = genCode();
+
+    const { data: inserted, error } = await sb.from('bookings').insert([{
+        booking_code: code,
+        customer_phone: currentUser.phone,
+        customer_name: currentUser.name || currentUser.phone,
+        customer_id: currentUser.id,
+        salon_id: sid, salon_name: sname,
+        service_name: serviceNames, services: JSON.stringify(cart),
+        price: total, total_amount: total, commission_fee: fee,
+        booking_date: slotDate, booking_time: slotTime, slot_time: slot,
+        utr_id: utr, payment_method: 'upi', status: 'pending_admin'
+    }]).select();
+
+    if (error) return showToast('Booking error: ' + error.message, 'red');
+
+    const { data: salonData } = await sb.from('salons').select('phone,latitude,longitude,address').eq('id', sid).single();
+    renderSuccess(sname, code, salonData, inserted?.[0]?.id);
+}
+
+function renderSuccess(sname, code, salonData, bookingId) {
+    if (_bookingPollTimer) clearInterval(_bookingPollTimer);
+    const mapUrl = salonData?.latitude && salonData?.longitude
+        ? `https://www.google.com/maps/dir/?api=1&destination=${salonData.latitude},${salonData.longitude}` : null;
+    const salonPhone = salonData?.phone ? String(salonData.phone).replace(/\D/g,'') : null;
+
+    function buildPage(confirmed) { return `
+    <div style="padding:32px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;min-height:100vh;">
+        <div style="width:72px;height:72px;${confirmed?'background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);':'background:rgba(234,179,8,0.12);color:#E8B84B;border:1px solid rgba(234,179,8,0.3);'}border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:16px;">
+            <i class="fas ${confirmed?'fa-check-double':'fa-clock'}"></i>
+        </div>
+        <h2 style="font-family:'Poppins',sans-serif;font-size:26px;font-weight:800;margin-bottom:6px;">
+            ${confirmed?'Booking <span style="color:#34d399;">Confirmed!</span>':'Booking <span style="color:#E8B84B;">Submitted!</span>'}
+        </h2>
+        <p style="color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;">
+            ${confirmed?'Admin ne verify kar diya ✅':'Payment received — Admin verify karega'}
+        </p>
+        <div style="width:100%;padding:14px 16px;border-radius:1rem;margin-bottom:20px;${confirmed?'background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);':'background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);'}">
+            ${confirmed?
+                `<p style="color:#34d399;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;">✅ Verified!</p>
+                 <p style="color:var(--muted);font-size:10px;margin-top:4px;">Booking code lekar salon jaiye</p>`:
+                `<p style="color:#E8B84B;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;">⏳ Verification Pending</p>
+                 <p style="color:var(--muted);font-size:10px;margin-top:4px;">UTR admin verify kar raha hai... <span id="poll-dots">.</span></p>`
+            }
+        </div>
+        <div class="glass" style="width:100%;padding:24px;margin-bottom:16px;border-color:rgba(45,122,80,0.35);">
+            <p style="font-size:10px;font-weight:800;color:var(--gl);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">🎟️ Booking Code</p>
+            <div style="font-size:52px;font-weight:900;color:white;letter-spacing:.3em;font-family:monospace;margin-bottom:8px;">${code}</div>
+            <p style="font-size:10px;color:var(--muted);font-weight:700;">Salon jaate waqt yeh code dikhayein</p>
+        </div>
+        ${confirmed && (mapUrl || salonPhone) ? `
+        <div class="glass" style="width:100%;padding:18px;text-align:left;margin-bottom:16px;">
+            <p style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">${sname}</p>
+            <div style="display:flex;gap:10px;">
+                ${salonPhone?`<a href="tel:${salonPhone}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);color:#34d399;padding:12px;border-radius:12px;text-decoration:none;font-size:10px;font-weight:800;text-transform:uppercase;"><i class="fas fa-phone"></i> Call</a>`:''}
+                ${mapUrl?`<a href="${mapUrl}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(45,122,80,0.12);border:1px solid rgba(45,122,80,0.3);color:var(--gl);padding:12px;border-radius:12px;text-decoration:none;font-size:10px;font-weight:800;text-transform:uppercase;"><i class="fas fa-map-location-dot"></i> Directions</a>`:''}
+            </div>
+        </div>` : ''}
+        <button onclick="renderHome()" class="btn-g" style="width:100%;padding:18px;font-size:14px;">Go to Dashboard</button>
+    </div>`; }
+
+    document.getElementById('app').innerHTML = buildPage(false);
+
+    let dots = 0;
+    const dotsTimer = setInterval(() => {
+        const el = document.getElementById('poll-dots');
+        if (!el) { clearInterval(dotsTimer); return; }
+        dots = (dots + 1) % 4;
+        el.textContent = '.'.repeat(dots + 1);
+    }, 600);
+
+    if (bookingId) {
+        _bookingPollTimer = setInterval(async () => {
+            const { data } = await sb.from('bookings').select('status').eq('id', bookingId).single();
+            if (data?.status === 'confirmed') {
+                clearInterval(_bookingPollTimer); clearInterval(dotsTimer);
+                document.getElementById('app').innerHTML = buildPage(true);
+            } else if (data?.status === 'rejected' || data?.status === 'cancelled') {
+                clearInterval(_bookingPollTimer); clearInterval(dotsTimer);
+                document.getElementById('app').innerHTML = `
+                <div style="padding:40px 20px;text-align:center;">
+                    <div style="font-size:60px;margin-bottom:16px;">❌</div>
+                    <h2 style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px;color:#f87171;">Booking Rejected</h2>
+                    <p style="color:var(--muted);font-size:12px;margin-bottom:32px;">UTR verify nahi ho saka.</p>
+                    <button onclick="renderHome()" class="btn-g" style="width:100%;padding:18px;font-size:14px;">Go Back</button>
+                </div>`;
+            }
+        }, 8000);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BOOKINGS HISTORY (with 2-hour cancel rule)
+// ═══════════════════════════════════════════════════════════
+async function renderBookings() {
+    document.getElementById('app').innerHTML = `
+    <div style="padding:20px 16px 120px;">
+        <h2 style="font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;margin-bottom:20px;">My <span style="color:var(--gl);">Bookings</span></h2>
+        <div id="bk-list"><div style="display:flex;justify-content:center;padding:40px;"><div style="width:36px;height:36px;border:3px solid var(--gm);border-top-color:var(--gl);border-radius:50%;animation:spin .7s linear infinite;"></div></div></div>
+    </div>
+    ${NAV('bookings')}`;
+
+    const { data: bookings } = await sb.from('bookings')
+        .select('*').eq('customer_phone', currentUser.phone)
+        .order('created_at', { ascending: false });
+
+    const el = document.getElementById('bk-list');
+    if (!el) return;
+
+    if (!bookings || bookings.length === 0) {
+        el.innerHTML = `<p style="text-align:center;padding:60px 0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.15em;">Koi booking nahi</p>`;
+        return;
+    }
+
+    el.innerHTML = bookings.map(b => {
+        const slotTime = b.slot_time ? new Date(b.slot_time) : null;
+        const now = new Date();
+        const cancelWindow = _appSettings?.cancel_window_hours || 2;
+        const canCancel = slotTime && (slotTime - now) > (cancelWindow * 60 * 60 * 1000) && (b.status === 'pending' || b.status === 'pending_admin');
+        const hoursLeft = slotTime ? ((slotTime - now) / 3600000).toFixed(1) : null;
+        const colorMap = { confirmed:'#34d399', cancelled:'#f87171', completed:'#60a5fa', pending:'#E8B84B', pending_admin:'#E8B84B', rejected:'#f87171' };
+        const color = colorMap[b.status] || '#E8B84B';
+
+        return `
+        <div class="glass2" style="padding:18px;margin-bottom:12px;border-left:4px solid ${color};">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                <div>
+                    <h4 style="font-weight:800;color:white;font-size:13px;font-family:'Poppins',sans-serif;">${b.salon_name||'Salon'}</h4>
+                    <p style="font-size:10px;font-weight:700;color:var(--muted);margin-top:2px;">${b.service_name||''}</p>
+                    ${slotTime ? `<p style="font-size:10px;color:var(--muted);margin-top:2px;">${slotTime.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</p>` : ''}
+                </div>
+                <span style="font-size:8px;font-weight:800;padding:4px 10px;background:rgba(255,255,255,0.04);border-radius:20px;text-transform:uppercase;letter-spacing:.08em;color:${color};">${b.status}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+                <div>
+                    <p style="font-size:24px;font-weight:900;color:white;font-family:'Poppins',sans-serif;">₹${b.total_amount||0}</p>
+                    ${b.booking_code ? `<p style="font-size:10px;font-weight:800;color:var(--gl);margin-top:2px;letter-spacing:.05em;">Code: <span style="font-family:monospace;font-size:13px;">${b.booking_code}</span></p>` : ''}
+                </div>
+                <div style="text-align:right;">
+                    ${canCancel ? `
+                    <button onclick="cancelBooking('${b.id}')" style="color:#f87171;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;border:1px solid rgba(248,113,113,0.25);padding:8px 14px;border-radius:10px;background:rgba(248,113,113,0.06);cursor:pointer;">Cancel</button>
+                    <p style="font-size:8px;color:var(--muted);margin-top:4px;">${hoursLeft}h baki hai</p>` : ''}
+                    ${b.status === 'pending' && !canCancel && slotTime && slotTime > now ? `<p style="font-size:8px;color:#f87171;font-weight:700;">Cancel allowed nahi<br>(2h se kam baki)</p>` : ''}
+                    ${b.status === 'completed' ? `<span style="font-size:9px;font-weight:800;color:#34d399;text-transform:uppercase;padding:8px 14px;border-radius:10px;background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.25);">✅ Done</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function cancelBooking(id) {
+    if (!confirm('Booking cancel karein?')) return;
+    // Re-check 2 hour rule
+    const { data: bk } = await sb.from('bookings').select('slot_time,status').eq('id', id).single();
+    if (!bk) return showToast('Booking not found', 'red');
+    const cancelWindow = _appSettings?.cancel_window_hours || 2;
+    const slotTime = new Date(bk.slot_time);
+    const now = new Date();
+    if ((slotTime - now) <= (cancelWindow * 60 * 60 * 1000)) {
+        return showToast(`Cancel allowed nahi — slot ke ${cancelWindow} ghante pehle karein`, 'red');
+    }
+    await sb.from('bookings').update({ status:'cancelled', cancelled_at: new Date().toISOString(), cancel_reason:'Customer cancelled' }).eq('id', id);
+    showToast('Booking cancel ho gayi');
+    renderBookings();
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════════════════════════
+function renderProfile() {
+    document.getElementById('app').innerHTML = `
+    <div style="padding:24px 16px 120px;">
+        <h2 style="font-family:'Poppins',sans-serif;font-size:22px;font-weight:800;margin-bottom:20px;">My <span style="color:var(--gl);">Profile</span></h2>
+        <div class="glass" style="padding:24px;margin-bottom:16px;text-align:center;">
+            <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--gm),var(--gp));display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;margin:0 auto 14px;color:white;">${(currentUser.name||'U')[0].toUpperCase()}</div>
+            <p style="font-size:18px;font-weight:900;color:white;font-family:'Poppins',sans-serif;">${currentUser.name}</p>
+            <p style="font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;">${currentUser.phone}</p>
+            <span class="badge bgold" style="margin-top:10px;display:inline-block;">✨ Elite Member</span>
+        </div>
+        <button onclick="renderBookings()" class="glass2" style="width:100%;padding:16px;font-size:13px;font-weight:800;color:var(--gl);border:none;cursor:pointer;text-align:left;margin-bottom:10px;display:flex;align-items:center;gap:10px;border-radius:1.2rem;"><i class="fas fa-calendar-alt"></i> My Bookings</button>
+        <button onclick="referFriend()" class="btn-g" style="width:100%;padding:16px;font-size:13px;margin-bottom:10px;">🎁 Refer a Friend</button>
+        <button onclick="openWhatsApp()" class="glass2" style="width:100%;padding:16px;font-size:13px;font-weight:800;color:#25d366;border:none;cursor:pointer;text-align:left;margin-bottom:10px;display:flex;align-items:center;gap:10px;border-radius:1.2rem;"><i class="fab fa-whatsapp"></i> Support Chat</button>
+        <button onclick="logout()" style="width:100%;padding:16px;font-size:13px;font-weight:800;color:#f87171;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:1.2rem;cursor:pointer;">Logout</button>
+    </div>
+    ${NAV('profile')}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+async function openWhatsApp() {
+    const num = _appSettings?.support_whatsapp || '';
+    if (!num) return showToast('Support number available nahi');
+    const clean = String(num).replace(/\D/g,'');
+    const msg = encodeURIComponent(`Namaste! Mera naam ${currentUser?.name||''} hai. (Phone: ${currentUser?.phone||''})\n\nProblem: `);
+    window.open(`https://wa.me/${clean.startsWith('91')?clean:'91'+clean}?text=${msg}`, '_blank');
+}
+
+function referFriend() {
+    const text = `Hey! Salon Partner app use karo — premium salons book karo ek tap mein!`;
+    if (navigator.share) navigator.share({ title:'Salon Partner', text, url: window.location.href });
+    else { navigator.clipboard?.writeText(window.location.href); showToast('Link copied!'); }
+}
+
+let _toastTimer;
+function showToast(msg, type = 'green') {
+    let t = document.getElementById('toast');
+    if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;padding:12px 24px;border-radius:14px;font-size:12px;font-weight:800;max-width:90vw;text-align:center;transition:opacity .3s;font-family:Nunito,sans-serif;'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.style.background = type === 'red' ? 'rgba(239,68,68,0.9)' : 'rgba(16,185,129,0.9)';
+    t.style.color = 'white';
+    t.style.opacity = '1';
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
+// CSS animation for spinner
+const style = document.createElement('style');
+style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+document.head.appendChild(style);
+
+// Start app
+init();
+</script>
+</body>
+</html>

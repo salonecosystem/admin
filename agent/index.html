@@ -1,1 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Salon AI - Agent App</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Salon Agent">
+    <meta name="theme-color" content="#7c3aed">
+    <script>if("serviceWorker"in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js");})}</script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; overflow-x: hidden; margin: 0; }
+        .app-wrap { max-width: 450px; margin: 0 auto; min-height: 100vh; background: #020617; padding-bottom: 110px; }
+        .glass { background: rgba(30,41,59,0.5); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 1.5rem; }
+        .btn-blue  { background: linear-gradient(135deg,#3b82f6,#1e40af); color: white; }
+        .btn-green { background: linear-gradient(135deg,#10b981,#047857); color: white; }
+        .btn-red   { background: linear-gradient(135deg,#ef4444,#991b1b); color: white; }
+        .btn-violet{ background: linear-gradient(135deg,#7c3aed,#4c1d95); color: white; }
+        input, select, textarea {
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            color: white !important; outline: none;
+            border-radius: 0.75rem; width: 100%;
+            padding: 14px 16px; font-size: 13px; font-weight: 700;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        input:focus, select:focus { border-color: #3b82f6 !important; }
+        input::placeholder, textarea::placeholder { color: #475569 !important; }
+        select option { background: #0f172a; }
+        .tag-pending  { background:#f59e0b22; color:#fbbf24; padding:2px 8px; border-radius:6px; font-size:8px; font-weight:900; text-transform:uppercase; }
+        .tag-approved { background:#10b98122; color:#34d399; padding:2px 8px; border-radius:6px; font-size:8px; font-weight:900; text-transform:uppercase; }
+        .step-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.15); transition:all 0.3s; }
+        .step-dot.active { background:#3b82f6; width:24px; border-radius:4px; }
+        .step-dot.done   { background:#10b981; }
+        .type-card { background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.08); border-radius:1rem; padding:14px; cursor:pointer; text-align:center; transition:all 0.2s; }
+        .type-card.sel { border-color:#3b82f6; background:rgba(59,130,246,0.12); }
+        .svc-row { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:1rem; padding:12px; margin-bottom:10px; }
+        .slot-box { width:44px; height:44px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; cursor:pointer; color:#64748b; }
+        .slot-box.on   { background:rgba(59,130,246,0.2); border-color:#3b82f6; color:#60a5fa; }
+        .slot-box.brk  { background:rgba(239,68,68,0.15); border-color:#ef4444; color:#f87171; }
+        .photo-box { width:50px; height:50px; border-radius:10px; background:rgba(255,255,255,0.05); border:1.5px dashed rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; flex-shrink:0; }
+        .photo-box img { width:100%; height:100%; object-fit:cover; }
+        .modal-bg  { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:200; display:flex; align-items:flex-end; justify-content:center; }
+        .modal-box { background:#0f172a; border-radius:2rem 2rem 0 0; padding:1.8rem; width:100%; max-width:450px; border-top:1px solid rgba(255,255,255,0.1); max-height:88vh; overflow-y:auto; }
+        .bank-card { background:rgba(30,41,59,0.5); border:1px solid rgba(255,255,255,0.08); border-radius:1.2rem; padding:14px; margin-bottom:10px; }
+        .bank-card.primary-bank { border-color:#3b82f6 !important; background:rgba(59,130,246,0.08) !important; }
+        .bank-card.primary-upi  { border-color:#8b5cf6 !important; background:rgba(139,92,246,0.08) !important; }
+        .add-dashed { width:100%; padding:14px; border:1.5px dashed rgba(255,255,255,0.15); border-radius:1rem; color:#64748b; font-size:11px; font-weight:700; text-transform:uppercase; background:transparent; cursor:pointer; }
+        .profile-ring { width:90px; height:90px; border-radius:50%; border:3px solid #3b82f6; position:relative; margin:0 auto 8px; overflow:hidden; cursor:pointer; }
+        .profile-ring img { width:100%; height:100%; object-fit:cover; }
+        .profile-ring .cam { position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:0.2s; }
+        .profile-ring:hover .cam { opacity:1; }
+        ::-webkit-scrollbar { width:3px; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:3px; }
+        .spinner { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; gap:12px; }
+        .nav-active { color:#60a5fa !important; filter:drop-shadow(0 0 8px rgba(96,165,250,0.5)); }
+    </style>
+</head>
+<body>
+<div id="app" class="app-wrap"></div>
 
+<nav id="navbar" class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] glass py-4 px-8 flex justify-between items-center z-50 hidden shadow-2xl" style="border-radius:2rem">
+    <button onclick="switchTab('home')"     id="nav-home"     class="text-slate-500 text-xl transition-all"><i class="fa-solid fa-house"></i></button>
+    <button onclick="switchTab('onboard')"  id="nav-onboard"  class="btn-blue w-14 h-14 rounded-2xl shadow-xl -mt-10 border-[6px] border-[#020617] flex items-center justify-center"><i class="fa-solid fa-plus text-xl"></i></button>
+    <button onclick="switchTab('wallet')"   id="nav-wallet"   class="text-slate-500 text-xl transition-all"><i class="fa-solid fa-wallet"></i></button>
+    <button onclick="switchTab('settings')" id="nav-settings" class="text-slate-500 text-xl transition-all"><i class="fa-solid fa-user-gear"></i></button>
+</nav>
+
+<script>
+// ═══════════════════════════════════════════════
+// SUPABASE INIT
+// ═══════════════════════════════════════════════
+const SUPABASE_URL = 'https://mlflkkcvbnfuhcoojcmv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_izxuZIgnWWe13aUwQ5quPw_Kg99ioy4';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let agent = JSON.parse(localStorage.getItem('salonAgent')) || null;
+let allSalons = [];
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+const app  = () => document.getElementById('app');
+const nav  = () => document.getElementById('navbar');
+
+function loading(msg = 'Loading...') {
+    app().innerHTML = `<div class="spinner"><i class="fa-solid fa-spinner fa-spin text-blue-400 text-3xl"></i><p class="text-[11px] text-slate-500 font-bold uppercase tracking-widest">${msg}</p></div>`;
+}
+
+function errScreen(msg, retry) {
+    app().innerHTML = `<div class="spinner text-center px-8"><i class="fa-solid fa-triangle-exclamation text-red-400 text-3xl mb-2"></i><p class="text-sm text-red-400 font-bold mb-4">${msg}</p><button onclick="${retry}()" class="btn-blue px-6 py-3 rounded-xl font-black text-xs uppercase">Retry</button></div>`;
+}
+
+function closeModal(id) {
+    document.getElementById(id)?.remove();
+}
+
+function switchTab(t) {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+    document.getElementById('nav-' + t)?.classList.add('nav-active');
+    if (t === 'home')     renderHome();
+    if (t === 'onboard')  renderOnboard(1);
+    if (t === 'wallet')   renderWallet();
+    if (t === 'settings') renderSettings();
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+async function init() {
+    if (agent) {
+        // Re-verify block status from DB on every app load
+        const { data } = await sb.from('agents').select('status').eq('partner_id', agent.partner_id).single();
+        if (data && data.status === 'blocked') {
+            localStorage.removeItem('salonAgent');
+            agent = null;
+            alert("🚫 Aapka account block kar diya gaya hai. Admin se contact karein.");
+            renderLogin();
+            return;
+        }
+        nav().classList.remove('hidden');
+        switchTab('home');
+    } else {
+        renderLogin();
+    }
+}
+
+// ═══════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════
+function renderLogin() {
+    nav().classList.add('hidden');
+    app().innerHTML = `
+    <div class="p-8 pt-28 flex flex-col min-h-screen">
+        <div class="w-16 h-16 btn-blue rounded-3xl flex items-center justify-center mb-8 shadow-2xl rotate-3">
+            <i class="fa-solid fa-scissors text-3xl"></i>
+        </div>
+        <h1 class="text-4xl font-black uppercase italic mb-1">Agent <span class="text-blue-500">Login</span></h1>
+        <p class="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-10">Salon AI Partner Portal</p>
+        <div class="space-y-4">
+            <input type="text" id="l-pid" placeholder="PARTNER ID (e.g. AGT001)" style="text-transform:uppercase">
+            <input type="password" id="l-pass" placeholder="PASSWORD">
+            <button onclick="doLogin()" id="login-btn" class="btn-blue w-full py-5 rounded-2xl font-black uppercase italic text-sm">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i>Login
+            </button>
+        </div>
+    </div>`;
+}
+
+async function doLogin() {
+    const pid  = document.getElementById('l-pid').value.trim().toUpperCase();
+    const pass = document.getElementById('l-pass').value.trim();
+    const btn  = document.getElementById('login-btn');
+    if (!pid || !pass) return alert("Saari details bharein!");
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Logging in...';
+
+    const { data, error } = await sb.from('agents').select('*').eq('partner_id', pid).single();
+
+    if (error || !data) {
+        alert("❌ Partner ID registered nahi hai!");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i>Login';
+        return;
+    }
+    if (data.password !== pass) {
+        alert("❌ Password galat hai!");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i>Login';
+        return;
+    }
+
+    // ── BLOCK CHECK ──
+    if (data.status === 'blocked') {
+        alert("🚫 Aapka account block kar diya gaya hai. Admin se contact karein.");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i>Login';
+        return;
+    }
+
+    agent = data;
+    localStorage.setItem('salonAgent', JSON.stringify(data));
+    init();
+}
+
+function logout() {
+    if (!confirm("Logout karna chahte hain?")) return;
+    localStorage.removeItem('salonAgent');
+    agent = null;
+    renderLogin();
+}
+
+// ═══════════════════════════════════════════════
+// HOME — DASHBOARD
+// ═══════════════════════════════════════════════
+async function renderHome() {
+    loading('Dashboard...');
+    try {
+        const { data: fresh } = await sb.from('agents').select('*').eq('partner_id', agent.partner_id).single();
+        if (fresh) { agent = fresh; localStorage.setItem('salonAgent', JSON.stringify(fresh)); }
+
+        const { data: salons } = await sb.from('salons').select('*').eq('onboarded_by', agent.partner_id).order('created_at', { ascending: false });
+        allSalons = salons || [];
+
+        app().innerHTML = `
+        <div class="p-5 pt-10">
+            <!-- Balance Card -->
+            <div class="glass p-6 mb-5" style="border-top:3px solid #3b82f6">
+                <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Available Balance</p>
+                <h2 class="text-4xl font-black italic">₹${agent.wallet_balance || 0}</h2>
+                <p class="text-[9px] text-slate-500 mt-1">Total Earned: ₹${agent.total_earning || 0}</p>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-3 gap-3 mb-5">
+                <div class="glass p-4 text-center">
+                    <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Total</p>
+                    <h3 class="text-2xl font-black">${allSalons.length}</h3>
+                </div>
+                <div class="glass p-4 text-center">
+                    <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Approved</p>
+                    <h3 class="text-2xl font-black text-emerald-400">${allSalons.filter(s=>s.status==='approved').length}</h3>
+                </div>
+                <div class="glass p-4 text-center">
+                    <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Pending</p>
+                    <h3 class="text-2xl font-black text-amber-400">${allSalons.filter(s=>s.status==='pending').length}</h3>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="relative mb-4">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-500 text-sm"></i>
+                <input type="text" onkeyup="filterSalons(this.value)" placeholder="Search salon name..." style="padding-left:42px">
+            </div>
+
+            <!-- Salon List -->
+            <div id="salon-list">${buildSalonCards(allSalons)}</div>
+        </div>`;
+    } catch(e) {
+        errScreen('Dashboard load nahi hua: ' + e.message, 'renderHome');
+    }
+}
+
+function buildSalonCards(list) {
+    if (!list.length) return `<div class="glass p-10 text-center opacity-40 mt-4"><i class="fa-solid fa-store-slash text-3xl mb-3"></i><p class="text-[10px] font-black uppercase">Koi salon nahi mila</p></div>`;
+    return list.map(s => `
+    <div class="glass p-4 flex gap-3 items-start mb-3">
+        <img src="${s.image_url || 'https://via.placeholder.com/56'}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
+        <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-start mb-1">
+                <h6 class="font-black text-xs uppercase text-white truncate pr-2">${s.name}</h6>
+                <span class="${s.status === 'approved' ? 'tag-approved' : 'tag-pending'}">${s.status || 'pending'}</span>
+            </div>
+            <p class="text-[9px] text-slate-400 mb-1">${s.phone || 'No phone'}</p>
+            <p class="text-[9px] ${s.owner_id ? 'text-emerald-400' : 'text-red-400'} font-black mb-2">
+                UID: ${s.owner_id || '⚠️ NOT SET'}
+            </p>
+            <div class="flex gap-2 flex-wrap">
+                ${s.phone ? `<a href="tel:${s.phone}" class="text-blue-400 text-xs"><i class="fa-solid fa-phone"></i></a>` : ''}
+                ${s.latitude ? `<button onclick="window.open('https://maps.google.com/?q=${s.latitude},${s.longitude}')" class="text-emerald-400 text-xs"><i class="fa-solid fa-location-dot"></i></button>` : ''}
+                ${!s.owner_id ? `<button onclick="fixUID('${s.id}')" class="text-[8px] font-black uppercase px-2 py-1 rounded-lg" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)"><i class="fa-solid fa-wrench mr-1"></i>Fix UID</button>` : `<button onclick="copyUID('${s.owner_id}')" class="text-[8px] font-black uppercase px-2 py-1 rounded-lg" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)"><i class="fa-solid fa-copy mr-1"></i>Copy UID</button>`}
+            </div>
+        </div>
+    </div>`).join('');
+}
+
+function filterSalons(q) {
+    const filtered = allSalons.filter(s => s.name?.toLowerCase().includes(q.toLowerCase()) || (s.phone||'').includes(q));
+    document.getElementById('salon-list').innerHTML = buildSalonCards(filtered);
+}
+
+async function fixUID(salonId) {
+    const uid = 'SAL' + salonId.replace(/-/g,'').substring(0,7).toUpperCase();
+    const { error } = await sb.from('salons').update({ owner_id: uid }).eq('id', salonId);
+    if (!error) {
+        try { await navigator.clipboard.writeText(uid); } catch(_) {}
+        alert(`✅ UID Fix Ho Gaya!\n\n🪪 ${uid}\n\n(Clipboard mein copy ho gaya)\nSalon owner ko WhatsApp karein.`);
+        renderHome();
+    } else {
+        alert('❌ Error: ' + error.message);
+    }
+}
+
+function copyUID(uid) {
+    navigator.clipboard.writeText(uid).then(() => alert('✅ UID Copied: ' + uid)).catch(() => alert('UID: ' + uid));
+}
+
+// ═══════════════════════════════════════════════
+// ONBOARDING — 5 STEPS
+// ═══════════════════════════════════════════════
+let ob = resetOb();
+
+function resetOb() {
+    return {
+        step: 1, category: '', type: '', salonName: '', ownerName: '', phone: '',
+        govtPhoto: null, salonPhoto: null, lat: null, lng: null,
+        slotDuration: 30, slotsPerSlot: 1, breaks: [],
+        services: [
+            { id:'s1', name:'Haircut',  price:'', slotTime:30, enabled:true, photo:null },
+            { id:'s2', name:'Facial',   price:'', slotTime:30, enabled:true, photo:null },
+            { id:'s3', name:'Manicure', price:'', slotTime:30, enabled:true, photo:null },
+            { id:'s4', name:'Pedicure', price:'', slotTime:30, enabled:true, photo:null },
+        ],
+        utr: ''
+    };
+}
+
+function renderOnboard(step) {
+    ob.step = step;
+    const labels = ['Salon Info','Details','Slot Setup','Services','Payment'];
+    const dots = labels.map((_,i) => `<div class="step-dot ${i+1===step?'active':i+1<step?'done':''}"></div>`).join('');
+
+    app().innerHTML = `
+    <div class="p-5 pt-10 pb-28">
+        <div class="flex items-center gap-3 mb-6">
+            ${step > 1 ? `<button onclick="renderOnboard(${step-1})" class="text-slate-400 text-lg w-8"><i class="fa-solid fa-chevron-left"></i></button>` : '<div class="w-8"></div>'}
+            <div class="flex-1">
+                <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest">Step ${step} / ${labels.length} — ${labels[step-1]}</p>
+                <div class="flex gap-1 mt-1">${dots}</div>
+            </div>
+        </div>
+        <div id="step-content"></div>
+    </div>`;
+
+    const renders = [null, step1, step2, step3, step4, step5];
+    document.getElementById('step-content').innerHTML = renders[step]();
+    if (step === 3) initSlots();
+    if (step === 5) loadQR();
+}
+
+// — STEP 1: Category & Type
+function step1() {
+    const cats  = ['Salon','Beauty Parlour'];
+    const types = ['AC','Non-AC','Luxury'];
+    return `
+    <h2 class="text-2xl font-black uppercase italic mb-1">Select <span class="text-blue-500">Salon</span></h2>
+    <p class="text-[10px] text-slate-500 mb-5">Category aur type chunein</p>
+
+    <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Category</p>
+    <div class="grid grid-cols-2 gap-3 mb-5">
+        ${cats.map(c => `<div class="type-card ${ob.category===c?'sel':''}" onclick="ob.category='${c}';renderOnboard(1)">
+            <i class="fa-solid ${c==='Salon'?'fa-scissors':'fa-spa'} text-xl mb-2 ${ob.category===c?'text-blue-400':'text-slate-500'}"></i>
+            <p class="text-xs font-black uppercase">${c}</p>
+        </div>`).join('')}
+    </div>
+
+    <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Type</p>
+    <div class="grid grid-cols-3 gap-3 mb-8">
+        ${types.map(t => `<div class="type-card ${ob.type===t?'sel':''}" onclick="ob.type='${t}';renderOnboard(1)">
+            <i class="fa-solid ${t==='AC'?'fa-snowflake':t==='Non-AC'?'fa-fan':'fa-crown'} text-xl mb-2 ${ob.type===t?'text-blue-400':'text-slate-500'}"></i>
+            <p class="text-[10px] font-black uppercase">${t}</p>
+        </div>`).join('')}
+    </div>
+
+    <button onclick="if(!ob.category)return alert('Category chunein');if(!ob.type)return alert('Type chunein');renderOnboard(2)"
+        class="btn-blue w-full py-5 rounded-2xl font-black uppercase italic">
+        Continue <i class="fa-solid fa-arrow-right ml-2"></i>
+    </button>`;
+}
+
+// — STEP 2: Details
+function step2() {
+    return `
+    <h2 class="text-2xl font-black uppercase italic mb-1">Salon <span class="text-blue-500">Details</span></h2>
+    <p class="text-[10px] text-slate-500 mb-5">Salon ki jankari bharein</p>
+    <div class="space-y-4">
+        <div>
+            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Salon Name *</p>
+            <input type="text" id="ob-name" value="${ob.salonName}" placeholder="e.g. Star Beauty Salon">
+        </div>
+        <div>
+            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Owner Name *</p>
+            <input type="text" id="ob-owner" value="${ob.ownerName}" placeholder="e.g. Rahul Kumar">
+        </div>
+        <div>
+            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Mobile Number *</p>
+            <input type="tel" id="ob-phone" value="${ob.phone}" placeholder="10-digit mobile number" maxlength="10">
+        </div>
+        <div>
+            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Govt ID Photo *</p>
+            <div class="flex items-center gap-3">
+                <div class="photo-box w-20 h-20 rounded-xl" onclick="document.getElementById('inp-govt').click()" id="prev-govt">
+                    ${ob.govtPhoto ? `<img src="${ob.govtPhoto}">` : `<i class="fa-solid fa-id-card text-slate-500 text-2xl"></i>`}
+                </div>
+                <div>
+                    <p class="text-xs font-bold">Aadhar / PAN / Voter ID</p>
+                    <p class="text-[9px] text-slate-500">JPG / PNG</p>
+                </div>
+            </div>
+            <input type="file" id="inp-govt" accept="image/*" class="hidden" onchange="uploadPhoto('inp-govt','prev-govt','govtPhoto')">
+        </div>
+        <div>
+            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Salon Photo *</p>
+            <div class="flex items-center gap-3">
+                <div class="photo-box w-20 h-20 rounded-xl" onclick="document.getElementById('inp-salon').click()" id="prev-salon">
+                    ${ob.salonPhoto ? `<img src="${ob.salonPhoto}">` : `<i class="fa-solid fa-store text-slate-500 text-2xl"></i>`}
+                </div>
+                <div>
+                    <p class="text-xs font-bold">Salon ka front view</p>
+                    <p class="text-[9px] text-slate-500">JPG / PNG</p>
+                </div>
+            </div>
+            <input type="file" id="inp-salon" accept="image/*" class="hidden" onchange="uploadPhoto('inp-salon','prev-salon','salonPhoto')">
+        </div>
+        <div>
+            <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Location *</p>
+            <button onclick="getLocation()" id="loc-btn" class="w-full py-4 rounded-xl font-black text-[10px] uppercase"
+                style="background:${ob.lat?'rgba(16,185,129,0.2)':'rgba(255,255,255,0.05)'};border:1px solid ${ob.lat?'#10b981':'rgba(255,255,255,0.1)'};color:${ob.lat?'#34d399':'#64748b'}">
+                <i class="fa-solid fa-location-crosshairs mr-2"></i>
+                ${ob.lat ? `✅ Saved (${ob.lat.toFixed(4)}, ${ob.lng.toFixed(4)})` : 'Get Current Location'}
+            </button>
+        </div>
+        <button onclick="step2Next()" class="btn-blue w-full py-5 rounded-2xl font-black uppercase italic mt-4">
+            Continue <i class="fa-solid fa-arrow-right ml-2"></i>
+        </button>
+    </div>`;
+}
+
+function uploadPhoto(inputId, previewId, stateKey) {
+    const file = document.getElementById(inputId).files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        ob[stateKey] = e.target.result;
+        const el = document.getElementById(previewId);
+        el.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+function getLocation() {
+    const btn = document.getElementById('loc-btn');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Getting location...';
+    if (!navigator.geolocation) {
+        ob.lat = 20.2961; ob.lng = 85.8245;
+        renderOnboard(2); return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        pos => { ob.lat = pos.coords.latitude; ob.lng = pos.coords.longitude; renderOnboard(2); },
+        ()  => { ob.lat = 20.2961; ob.lng = 85.8245; renderOnboard(2); }
+    );
+}
+
+function step2Next() {
+    ob.salonName  = document.getElementById('ob-name').value.trim();
+    ob.ownerName  = document.getElementById('ob-owner').value.trim();
+    ob.phone      = document.getElementById('ob-phone').value.trim();
+    if (!ob.salonName)  return alert("Salon name zaroori hai!");
+    if (!ob.ownerName)  return alert("Owner name zaroori hai!");
+    if (!ob.phone || ob.phone.length < 10) return alert("Valid mobile number daalna zaroori hai!");
+    if (!ob.govtPhoto)  return alert("Govt ID photo upload karo!");
+    if (!ob.salonPhoto) return alert("Salon photo upload karo!");
+    if (!ob.lat)        return alert("Location save karo!");
+    renderOnboard(3);
+}
+
+// — STEP 3: Slot Setup
+let slotGrid = [];
+
+function step3() {
+    const durations = [15, 30, 60];
+    const cusOpts   = [1, 2, 3, 5];
+    return `
+    <h2 class="text-2xl font-black uppercase italic mb-1">Slot <span class="text-blue-500">Setup</span></h2>
+    <p class="text-[10px] text-slate-500 mb-5">Time slots configure karein</p>
+
+    <div class="glass p-4 mb-4">
+        <p class="text-[9px] font-black text-slate-400 uppercase mb-3">Slot Duration</p>
+        <div class="flex gap-2">
+            ${durations.map(d => `<button onclick="ob.slotDuration=${d};renderOnboard(3)" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${ob.slotDuration===d?'btn-blue':'glass text-slate-400'}">${d} min</button>`).join('')}
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-4">
+        <p class="text-[9px] font-black text-slate-400 uppercase mb-3">Customers Per Slot</p>
+        <div class="flex gap-2">
+            ${cusOpts.map(n => `<button onclick="ob.slotsPerSlot=${n};renderOnboard(3)" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${ob.slotsPerSlot===n?'btn-blue':'glass text-slate-400'}">${n}</button>`).join('')}
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-4">
+        <div class="flex justify-between items-center mb-3">
+            <p class="text-[9px] font-black text-slate-400 uppercase">Break Times</p>
+            <button onclick="addBreakModal()" class="text-[9px] font-black text-blue-400 uppercase">+ Add Break</button>
+        </div>
+        <div id="break-list">
+            ${ob.breaks.length ? ob.breaks.map((b,i) => `
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[9px] font-black text-red-400"><i class="fa-solid fa-mug-hot mr-1"></i>${b.label} • ${b.start}–${b.end}</span>
+                <button onclick="ob.breaks.splice(${i},1);renderOnboard(3)" class="text-red-400 text-xs ml-2"><i class="fa-solid fa-xmark"></i></button>
+            </div>`).join('') : '<p class="text-[9px] text-slate-600 italic">No breaks added</p>'}
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-6">
+        <p class="text-[9px] font-black text-slate-400 uppercase mb-3">Slot Preview (tap to toggle)</p>
+        <div id="slot-grid" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <button onclick="renderOnboard(4)" class="btn-blue w-full py-5 rounded-2xl font-black uppercase italic">
+        Continue <i class="fa-solid fa-arrow-right ml-2"></i>
+    </button>`;
+}
+
+function initSlots() {
+    const start = 9 * 60, end = 21 * 60;
+    const count = Math.floor((end - start) / ob.slotDuration);
+    slotGrid = [];
+    for (let i = 0; i < count; i++) {
+        const m = start + i * ob.slotDuration;
+        const h = Math.floor(m / 60), min = m % 60;
+        const label = `${h > 12 ? h - 12 : h}:${min.toString().padStart(2,'0')}${h >= 12 ? 'PM' : 'AM'}`;
+        const isBreak = ob.breaks.some(b => {
+            const [bsh, bsm] = b.start.split(':').map(Number);
+            const [beh, bem] = b.end.split(':').map(Number);
+            return m >= bsh*60+bsm && m < beh*60+bem;
+        });
+        slotGrid.push({ label, active: !isBreak, isBreak });
+    }
+    drawSlots();
+}
+
+function drawSlots() {
+    const el = document.getElementById('slot-grid');
+    if (!el) return;
+    el.innerHTML = slotGrid.map((s,i) => `<div class="slot-box ${s.isBreak?'brk':s.active?'on':''}" onclick="if(!slotGrid[${i}].isBreak){slotGrid[${i}].active=!slotGrid[${i}].active;drawSlots()}">${s.label}</div>`).join('');
+}
+
+function addBreakModal() {
+    document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-bg" id="break-modal" onclick="if(event.target.id==='break-modal')closeModal('break-modal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-5">
+                <p class="font-black text-sm text-red-400 uppercase italic"><i class="fa-solid fa-mug-hot mr-2"></i>Add Break</p>
+                <button onclick="closeModal('break-modal')" class="text-slate-500 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="text" id="b-label" placeholder="Label (e.g. Lunch)" class="mb-3">
+            <div class="flex gap-3 mb-4">
+                <div class="flex-1"><p class="text-[9px] font-black text-slate-400 uppercase mb-1">Start</p><input type="time" id="b-start"></div>
+                <div class="flex-1"><p class="text-[9px] font-black text-slate-400 uppercase mb-1">End</p><input type="time" id="b-end"></div>
+            </div>
+            <button onclick="saveBreak()" class="btn-red w-full py-4 rounded-xl font-black text-xs uppercase">Save Break</button>
+        </div>
+    </div>`);
+}
+
+function saveBreak() {
+    const label = document.getElementById('b-label').value.trim() || 'Break';
+    const start = document.getElementById('b-start').value;
+    const end   = document.getElementById('b-end').value;
+    if (!start || !end) return alert("Start aur end time set karo!");
+    ob.breaks.push({ label, start, end });
+    closeModal('break-modal');
+    renderOnboard(3);
+}
+
+// — STEP 4: Services
+function step4() {
+    return `
+    <h2 class="text-2xl font-black uppercase italic mb-1">Manage <span class="text-blue-500">Services</span></h2>
+    <p class="text-[10px] text-slate-500 mb-5">Services, price aur time set karein</p>
+    <div id="svc-list">
+        ${ob.services.map((s,i) => svcRow(s,i)).join('')}
+    </div>
+    <button onclick="addSvc()" class="add-dashed mt-2 mb-6"><i class="fa-solid fa-plus mr-2"></i>New Service Add Karein</button>
+    <button onclick="if(!ob.services.filter(s=>s.enabled&&s.name).length)return alert('Kam se kam 1 service enable karo!');renderOnboard(5)"
+        class="btn-blue w-full py-5 rounded-2xl font-black uppercase italic">
+        Continue <i class="fa-solid fa-arrow-right ml-2"></i>
+    </button>`;
+}
+
+function svcRow(s, i) {
+    return `
+    <div class="svc-row" id="svc-${i}">
+        <div class="flex items-center gap-3 mb-3">
+            <input type="checkbox" style="width:18px;height:18px;accent-color:#3b82f6;flex-shrink:0;padding:0" ${s.enabled?'checked':''} onchange="ob.services[${i}].enabled=this.checked">
+            <input type="text" value="${s.name}" placeholder="Service Name" style="flex:1;padding:8px 12px" onchange="ob.services[${i}].name=this.value">
+            <button onclick="ob.services.splice(${i},1);document.getElementById('svc-list').innerHTML=ob.services.map((s,i)=>svcRow(s,i)).join('')" class="text-red-400 text-sm flex-shrink-0"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="photo-box" onclick="document.getElementById('svc-inp-${i}').click()" id="svc-prev-${i}">
+                ${s.photo ? `<img src="${s.photo}">` : `<i class="fa-solid fa-camera text-slate-500 text-xs"></i>`}
+            </div>
+            <input type="file" id="svc-inp-${i}" accept="image/*" class="hidden" onchange="loadSvcPhoto(${i})">
+            <div class="flex-1 relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                <input type="number" value="${s.price}" placeholder="Price" style="padding-left:22px;padding-top:10px;padding-bottom:10px" onchange="ob.services[${i}].price=this.value">
+            </div>
+            <select style="width:80px;padding:10px 8px" onchange="ob.services[${i}].slotTime=parseInt(this.value)">
+                ${[15,30,60].map(d=>`<option value="${d}" ${s.slotTime===d?'selected':''}>${d}m</option>`).join('')}
+            </select>
+        </div>
+    </div>`;
+}
+
+function loadSvcPhoto(i) {
+    const file = document.getElementById(`svc-inp-${i}`).files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        ob.services[i].photo = e.target.result;
+        const el = document.getElementById(`svc-prev-${i}`);
+        el.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+function addSvc() {
+    ob.services.push({ id:'s'+Date.now(), name:'', price:'', slotTime:30, enabled:true, photo:null });
+    document.getElementById('svc-list').innerHTML = ob.services.map((s,i) => svcRow(s,i)).join('');
+}
+
+// — STEP 5: Payment
+function step5() {
+    return `
+    <h2 class="text-2xl font-black uppercase italic mb-1">Payment <span class="text-blue-500">Verify</span></h2>
+    <p class="text-[10px] text-slate-500 mb-5">QR scan karke payment karein, UTR paste karein</p>
+
+    <div class="glass p-5 text-center mb-4">
+        <div class="flex justify-between items-center mb-3">
+            <div>
+                <p class="text-[9px] font-black text-slate-400 uppercase">Payment QR Code</p>
+                <p id="qr-cat-label" class="text-[10px] font-black mt-1" style="color:#60a5fa;"></p>
+            </div>
+            <span class="text-[8px] font-black px-2 py-1 rounded-lg" style="background:rgba(16,185,129,0.15);color:#34d399"><i class="fa-solid fa-lock mr-1"></i>Admin Set</span>
+        </div>
+        <div id="qr-box" class="bg-white rounded-2xl mx-auto flex items-center justify-center" style="width:180px;height:180px">
+            <i class="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i>
+        </div>
+        <div id="upi-row" class="hidden mt-3">
+            <p id="upi-label" class="text-sm font-black text-purple-300"></p>
+            <p id="pay-name" class="text-[9px] text-slate-500"></p>
+        </div>
+    </div>
+
+    <div class="glass p-5 mb-4">
+        <p class="text-[9px] font-black text-amber-400 uppercase mb-3"><i class="fa-solid fa-receipt mr-2"></i>UTR / Transaction Number</p>
+        <input type="text" id="utr-inp" value="${ob.utr}" placeholder="UTR number paste karein"
+            style="color:#fbbf24 !important;letter-spacing:0.1em;text-transform:uppercase"
+            oninput="ob.utr=this.value.trim().toUpperCase();this.value=this.value.toUpperCase()">
+        <p class="text-[8px] text-slate-500 mt-2">Payment ke baad jo UTR / Reference mile woh enter karein</p>
+    </div>
+
+    <button onclick="submitOnboard()" class="btn-green w-full py-5 rounded-2xl font-black uppercase italic">
+        <i class="fa-solid fa-circle-check mr-2"></i>Complete Onboarding
+    </button>`;
+}
+
+async function loadQR() {
+    try {
+        const { data } = await sb.from('app_settings').select('payment_qr_urls,payment_upi_id,payment_name').eq('id',1).single();
+        const qrBox = document.getElementById('qr-box');
+        if (!qrBox) return;
+
+        // Pick correct QR based on category + type selected in step 1
+        const cat  = (ob.category || '').toLowerCase().includes('parlour') ? 'parlour' : 'salon';
+        const type = (ob.type || '').toLowerCase().replace('-',''); // 'ac' | 'nonac' | 'luxury'
+        const qrUrls = data?.payment_qr_urls || {};
+        const qrUrl  = qrUrls[cat]?.[type] || '';
+
+        // Show category + type label
+        const catLabel  = ob.category || 'Salon';
+        const typeLabel = ob.type || '';
+        document.getElementById('qr-cat-label').textContent = catLabel + ' — ' + typeLabel;
+
+        if (qrUrl) {
+            qrBox.innerHTML = `<img src="${qrUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:12px"
+                onerror="this.parentElement.innerHTML='<div style=\'text-align:center;padding:20px\'><i class=\'fa-solid fa-qrcode\' style=\'font-size:40px;color:#334155\'></i><p style=\'font-size:9px;color:#ef4444;margin-top:8px;font-weight:700\'>QR load nahi hua</p></div>'"
+            >`;
+        } else {
+            qrBox.innerHTML = `<div style="text-align:center;padding:20px"><i class="fa-solid fa-qrcode" style="font-size:40px;color:#334155"></i><p style="font-size:9px;color:#475569;margin-top:8px;font-weight:700">Admin ne QR set nahi kiya</p></div>`;
+        }
+
+        if (data?.payment_upi_id) {
+            document.getElementById('upi-label').textContent = data.payment_upi_id;
+            document.getElementById('pay-name').textContent  = data.payment_name || '';
+            document.getElementById('upi-row').classList.remove('hidden');
+        }
+    } catch(e) { console.error('QR load error:', e); }
+}
+
+async function submitOnboard() {
+    const utr = (ob.utr || '').trim();
+    if (!utr) return alert("UTR number daalna zaroori hai!");
+
+    loading('Submitting...');
+
+    try {
+        // Pre-generate UUID + owner_id in one INSERT
+        const newId  = crypto.randomUUID();
+        const ownerId = 'SAL' + newId.replace(/-/g,'').substring(0,7).toUpperCase();
+
+        const payload = {
+            id: newId,
+            owner_id: ownerId,
+            onboarded_by:  agent.partner_id,
+            name:          ob.salonName,
+            owner_name:    ob.ownerName,
+            category:      ob.category,
+            salon_type:    ob.type,
+            phone:         ob.phone,
+            latitude:      ob.lat,
+            longitude:     ob.lng,
+            image_url:     ob.salonPhoto,
+            slot_duration: ob.slotDuration,
+            slots_per_slot:ob.slotsPerSlot,
+            services:      JSON.stringify(ob.services),
+            breaks:        JSON.stringify(ob.breaks),
+            utr_number:    utr,
+            status:        'pending',
+            created_at:    new Date().toISOString()
+        };
+
+        const { data: salon, error } = await sb.from('salons').insert([payload]).select().single();
+        if (error) { alert("Error: " + error.message); renderOnboard(5); return; }
+
+        // Commission
+        let commission = 200;
+        try {
+            const { data: cfg } = await sb.from('app_settings').select('agent_commission').eq('id',1).single();
+            if (cfg?.agent_commission != null) commission = Number(cfg.agent_commission);
+        } catch(_) {}
+
+        const newBal = (agent.wallet_balance || 0) + commission;
+        await sb.from('agents').update({ wallet_balance: newBal, total_earning: (agent.total_earning||0)+commission }).eq('partner_id', agent.partner_id);
+        agent.wallet_balance = newBal;
+        agent.total_earning  = (agent.total_earning||0) + commission;
+        localStorage.setItem('salonAgent', JSON.stringify(agent));
+
+        await sb.from('commissions').insert([{
+            partner_id: agent.partner_id,
+            salon_id: salon.id,
+            salon_name: ob.salonName,
+            amount: commission,
+            utr_number: utr,
+            status: 'credited',
+            created_at: new Date().toISOString()
+        }]);
+
+        // Save completed info before reset
+        const info = { ...ob, ownerId, commission };
+
+        // Reset
+        ob = resetOb();
+
+        renderComplete(utr, info);
+
+    } catch(e) {
+        alert("Server Error: " + e.message);
+        renderOnboard(5);
+    }
+}
+
+function renderComplete(utr, info) {
+    const phone = (info.phone||'').replace(/\D/g,'');
+    const wa = `91${phone.startsWith('91')?phone.slice(2):phone}`;
+    const msg = `🎉 *Abhinandan ${info.ownerName}!* 🎊\n*${info.salonName}* ab Salon AI ka hissa hai!\n\n✅ *Category:* ${info.category} (${info.type})\n📋 *Status:* Pending Verification\n🪪 *User ID:* ${info.ownerId}\n🧾 *UTR:* ${utr}\n\nYeh User ID apne Salon AI app mein enter karein aur apna 6-digit password set karein! 🙏`;
+    const waUrl = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+
+    app().innerHTML = `
+    <div class="p-6 pt-10 pb-28 flex flex-col gap-5">
+        <div class="text-center">
+            <div class="btn-green w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl mx-auto mb-4">
+                <i class="fa-solid fa-circle-check text-4xl"></i>
+            </div>
+            <h2 class="text-2xl font-black uppercase italic">Onboarding <span class="text-emerald-400">Complete!</span></h2>
+            <p class="text-[10px] text-slate-500 mt-1">Commission wallet mein add ho gaya</p>
+        </div>
+
+        <!-- Commission Banner -->
+        <div class="glass p-4 flex items-center justify-between" style="border:1.5px solid rgba(16,185,129,0.4)">
+            <div class="flex items-center gap-3">
+                <div class="btn-green w-10 h-10 rounded-xl flex items-center justify-center"><i class="fa-solid fa-indian-rupee-sign text-sm"></i></div>
+                <div>
+                    <p class="text-[8px] font-black text-emerald-400 uppercase">Commission Credited</p>
+                    <p class="text-[9px] text-slate-400">Wallet balance updated</p>
+                </div>
+            </div>
+            <p class="text-2xl font-black text-emerald-300">+₹${info.commission}</p>
+        </div>
+
+        <!-- Salon UID Card -->
+        <div class="glass p-5" style="border:1.5px solid rgba(16,185,129,0.4)">
+            <p class="text-[8px] font-black text-emerald-400 uppercase mb-3">⚠️ Salon Owner Ko Yeh ID Dena Zaroori Hai</p>
+            <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-2xl font-black tracking-widest">${info.ownerId}</p>
+                <button onclick="navigator.clipboard.writeText('${info.ownerId}').then(()=>{this.textContent='✅ Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})"
+                    class="btn-blue px-3 py-2 rounded-xl text-[10px] font-black uppercase flex-shrink-0">Copy</button>
+            </div>
+            <p class="text-[8px] text-slate-500">Is ID se salon owner apna password set karega</p>
+        </div>
+
+        <!-- Details -->
+        <div class="glass p-5">
+            <p class="text-[8px] font-black text-slate-400 uppercase mb-3">Salon Details</p>
+            ${[['Salon Name',info.salonName],['Owner',info.ownerName],['Category',`${info.category} • ${info.type}`],['UTR',utr]].map(([k,v])=>`
+            <div class="flex justify-between items-center py-2 border-b border-white/5">
+                <span class="text-[9px] text-slate-500">${k}</span>
+                <span class="text-[10px] font-black">${v}</span>
+            </div>`).join('')}
+        </div>
+
+        <!-- WhatsApp -->
+        <a href="${waUrl}" target="_blank"
+            class="w-full py-5 rounded-2xl font-black uppercase italic text-center text-white flex items-center justify-center gap-3"
+            style="background:linear-gradient(135deg,#25d366,#128c7e);text-decoration:none">
+            <i class="fa-brands fa-whatsapp text-xl"></i>Send WhatsApp to Owner
+        </a>
+
+        <button onclick="switchTab('home')" class="w-full py-4 rounded-2xl font-black uppercase italic glass text-slate-400">
+            <i class="fa-solid fa-house mr-2"></i>Back to Dashboard
+        </button>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// WALLET
+// ═══════════════════════════════════════════════
+async function renderWallet() {
+    loading('Wallet...');
+    try {
+        const { data: ag, error } = await sb.from('agents').select('*').eq('partner_id', agent.partner_id).single();
+        if (error || !ag) { errScreen('Wallet load nahi hua. Internet check karein.', 'renderWallet'); return; }
+
+        agent.wallet_balance = ag.wallet_balance || 0;
+        agent.total_earning  = ag.total_earning  || 0;
+        localStorage.setItem('salonAgent', JSON.stringify(agent));
+
+        const { data: history } = await sb.from('withdrawals').select('*').eq('partner_id', agent.partner_id).order('created_at', { ascending: false });
+        const { data: commList } = await sb.from('commissions').select('*').eq('partner_id', agent.partner_id).order('created_at', { ascending: false }).limit(20);
+
+        app().innerHTML = `
+        <div class="p-5 pt-10 pb-28">
+            <h2 class="text-2xl font-black italic mb-5 uppercase">Wallet <span class="text-blue-500">Center</span></h2>
+
+            <!-- Balance Cards -->
+            <div class="grid grid-cols-2 gap-3 mb-5">
+                <div class="glass p-5" style="border-left:3px solid #10b981">
+                    <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Total Earned</p>
+                    <h3 class="text-2xl font-black text-emerald-400">₹${ag.total_earning || 0}</h3>
+                </div>
+                <div class="glass p-5" style="border-left:3px solid #3b82f6">
+                    <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Available</p>
+                    <h3 class="text-2xl font-black text-blue-400">₹${ag.wallet_balance || 0}</h3>
+                </div>
+            </div>
+
+            <!-- Withdraw -->
+            <div class="glass p-5 mb-5">
+                <p class="text-[9px] font-black text-slate-400 uppercase mb-3"><i class="fa-solid fa-money-bill-transfer mr-2"></i>Withdraw Request</p>
+                <div class="flex gap-2">
+                    <input type="number" id="w-amt" placeholder="Amount (min ₹100)" style="flex:1">
+                    <button onclick="doWithdraw()" class="btn-blue px-5 rounded-xl font-bold text-[10px] uppercase">Submit</button>
+                </div>
+                <p class="text-[8px] text-slate-500 mt-2">Available: ₹${ag.wallet_balance || 0}</p>
+            </div>
+
+            <!-- Commission History -->
+            <div class="glass p-5 mb-5">
+                <p class="text-[9px] font-black text-slate-400 uppercase mb-3"><i class="fa-solid fa-store mr-2"></i>Commission History</p>
+                ${(commList||[]).length ? (commList||[]).map(c=>`
+                <div class="flex justify-between items-center py-2" style="border-bottom:1px solid rgba(255,255,255,0.05)">
+                    <div>
+                        <p class="text-[10px] font-black">${c.salon_name || 'Salon'}</p>
+                        <p class="text-[8px] text-slate-500">${new Date(c.created_at).toLocaleDateString('en-IN')}</p>
+                    </div>
+                    <p class="font-black text-emerald-400">+₹${c.amount}</p>
+                </div>`).join('') : '<p class="text-[10px] text-slate-600 text-center py-3">Koi commission nahi abhi tak</p>'}
+            </div>
+
+            <!-- Withdrawal History -->
+            <div class="glass p-5">
+                <p class="text-[9px] font-black text-slate-400 uppercase mb-3"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Withdrawal History</p>
+                <div class="flex gap-2 mb-3">
+                    <input type="date" id="w-from" style="flex:1;padding:10px 12px">
+                    <input type="date" id="w-to"   style="flex:1;padding:10px 12px">
+                    <button onclick="filterW()" class="btn-blue px-4 rounded-xl font-bold text-[9px]">Go</button>
+                </div>
+                <div id="w-history">${buildWHistory(history||[])}</div>
+            </div>
+        </div>`;
+    } catch(e) {
+        errScreen('Error: ' + e.message, 'renderWallet');
+    }
+}
+
+function buildWHistory(list) {
+    if (!list.length) return '<p class="text-[10px] text-slate-600 text-center py-3">Koi withdrawal request nahi</p>';
+    return list.map(h => `
+    <div class="flex justify-between items-center py-2" style="border-bottom:1px solid rgba(255,255,255,0.05)">
+        <div>
+            <p class="text-[10px] font-black">₹${h.amount}</p>
+            <p class="text-[8px] text-slate-500">${new Date(h.created_at).toLocaleDateString('en-IN')}</p>
+        </div>
+        <span class="text-[9px] font-black ${h.status==='success'?'text-emerald-400':h.status==='rejected'?'text-red-400':'text-amber-400'} uppercase">${h.status}</span>
+    </div>`).join('');
+}
+
+async function doWithdraw() {
+    const amt = parseInt(document.getElementById('w-amt').value);
+    if (!amt || amt < 100) return alert("Minimum ₹100 chahiye!");
+    if (amt > agent.wallet_balance) return alert("Balance kam hai! Available: ₹" + agent.wallet_balance);
+    const { error } = await sb.from('withdrawals').insert([{
+        partner_id: agent.partner_id,
+        amount: amt,
+        status: 'pending',
+        created_at: new Date().toISOString()
+    }]);
+    if (!error) { alert("✅ Withdraw Request Submit Ho Gaya!"); renderWallet(); }
+    else alert("❌ Error: " + error.message);
+}
+
+async function filterW() {
+    const from = document.getElementById('w-from').value;
+    const to   = document.getElementById('w-to').value;
+    let q = sb.from('withdrawals').select('*').eq('partner_id', agent.partner_id).order('created_at',{ascending:false});
+    if (from) q = q.gte('created_at', from);
+    if (to)   q = q.lte('created_at', to + 'T23:59:59');
+    const { data } = await q;
+    document.getElementById('w-history').innerHTML = buildWHistory(data||[]);
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════
+async function renderSettings() {
+    loading('Settings...');
+    try {
+        const { data: ag, error } = await sb.from('agents').select('*').eq('partner_id', agent.partner_id).single();
+        if (error || !ag) { errScreen('Settings load nahi hua. Internet check karein.', 'renderSettings'); return; }
+
+        const { data: accounts } = await sb.from('agent_bank_accounts').select('*').eq('partner_id', agent.partner_id).order('created_at',{ascending:true});
+        const banks = accounts || [];
+
+        app().innerHTML = `
+        <div class="p-5 pt-10 pb-28 space-y-5">
+            <h2 class="text-2xl font-black italic uppercase">Settings <span class="text-blue-500">Panel</span></h2>
+
+            <!-- Profile -->
+            <div class="text-center">
+                <div class="profile-ring" onclick="document.getElementById('prof-inp').click()">
+                    <img src="${ag.profile_photo || `https://api.dicebear.com/7.x/bottts/svg?seed=${ag.partner_id}`}" id="prof-img">
+                    <div class="cam"><i class="fa-solid fa-camera text-white text-xl"></i></div>
+                </div>
+                <input type="file" id="prof-inp" accept="image/*" class="hidden" onchange="uploadProfPhoto()">
+                <p class="text-[8px] text-blue-400 font-bold uppercase mb-1">Tap to change photo</p>
+                <h3 class="text-lg font-black uppercase">${ag.name || ''}</h3>
+                <p class="text-[10px] text-slate-500 font-bold">${ag.partner_id}</p>
+            </div>
+
+            <!-- Edit Profile -->
+            <div class="glass p-5">
+                <p class="text-[9px] font-black text-blue-400 uppercase mb-4 italic">Edit Profile</p>
+                <input type="text" id="prof-name"  value="${ag.name||''}"  placeholder="Full Name"    class="mb-3">
+                <input type="tel"  id="prof-phone" value="${ag.phone||''}" placeholder="Phone Number" class="mb-3">
+                <button onclick="saveProfile()" class="btn-blue w-full py-3 rounded-xl font-bold text-[10px] uppercase">Save Profile</button>
+            </div>
+
+            <!-- Bank Accounts -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <p class="text-[10px] font-black text-blue-400 uppercase italic">Payment Accounts</p>
+                    <span class="text-[9px] text-slate-500">${banks.length} account(s)</span>
+                </div>
+                <div id="bank-list">${buildBankCards(banks)}</div>
+                <div class="flex gap-3 mt-3">
+                    <button onclick="openBankModal('bank')" class="add-dashed flex-1"><i class="fa-solid fa-building-columns mr-2"></i>+ Bank</button>
+                    <button onclick="openBankModal('upi')"  class="add-dashed flex-1" style="border-color:rgba(139,92,246,0.3);color:#8b5cf6"><i class="fa-solid fa-mobile-screen mr-2"></i>+ UPI</button>
+                </div>
+            </div>
+
+            <!-- Security -->
+            <div class="glass p-5">
+                <p class="text-[9px] font-black text-amber-400 uppercase mb-4 italic">Change Password</p>
+                <input type="password" id="new-pass" placeholder="New Password" class="mb-3">
+                <button onclick="changePass()" class="w-full py-3 rounded-xl font-bold text-[10px] uppercase" style="border:1px solid rgba(255,255,255,0.1);color:#94a3b8">Update Password</button>
+            </div>
+
+            <button onclick="logout()" class="w-full py-3 text-red-400 font-black text-[10px] uppercase italic">
+                <i class="fa-solid fa-right-from-bracket mr-2"></i>Logout
+            </button>
+        </div>`;
+    } catch(e) {
+        errScreen('Error: ' + e.message, 'renderSettings');
+    }
+}
+
+function buildBankCards(list) {
+    if (!list.length) return '<p class="text-[10px] text-slate-600 text-center py-3">Koi account add nahi kiya</p>';
+    return list.map(a => {
+        const isUpi = a.type === 'upi';
+        const cls   = a.is_primary ? (isUpi ? 'primary-upi' : 'primary-bank') : '';
+        return `
+        <div class="bank-card ${cls}">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <p class="text-[9px] font-black uppercase ${isUpi?'text-purple-400':'text-blue-400'}">${isUpi?'UPI':'Bank Account'}</p>
+                    <p class="text-xs font-black text-white mt-0.5">${isUpi ? (a.upi_id||'') : (a.holder_name||'')}</p>
+                    ${isUpi ? '' : `<p class="text-[9px] text-slate-400">${a.bank_name||''} • ${a.account_no ? '••••'+a.account_no.slice(-4) : ''}</p>`}
+                </div>
+                ${a.is_primary ? `<span class="text-[8px] font-black px-2 py-0.5 rounded-lg" style="background:rgba(16,185,129,0.15);color:#34d399">PRIMARY</span>` : ''}
+            </div>
+            <div class="flex gap-2">
+                ${!a.is_primary ? `<button onclick="setPrimary('${a.id}')" class="text-[9px] font-black text-blue-400 uppercase">Set Primary</button>` : ''}
+                <button onclick="editAccount('${a.id}','${a.type}')" class="text-[9px] font-black text-slate-400 uppercase ml-auto">Edit</button>
+                <button onclick="delAccount('${a.id}')" class="text-[9px] font-black text-red-400 uppercase">Delete</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function uploadProfPhoto() {
+    const file = document.getElementById('prof-inp').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async e => {
+        document.getElementById('prof-img').src = e.target.result;
+        await sb.from('agents').update({ profile_photo: e.target.result }).eq('partner_id', agent.partner_id);
+        agent.profile_photo = e.target.result;
+        localStorage.setItem('salonAgent', JSON.stringify(agent));
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+    const name  = document.getElementById('prof-name').value.trim();
+    const phone = document.getElementById('prof-phone').value.trim();
+    if (!name) return alert("Name zaroori hai!");
+    const { error } = await sb.from('agents').update({ name, phone }).eq('partner_id', agent.partner_id);
+    if (!error) { agent.name = name; agent.phone = phone; localStorage.setItem('salonAgent', JSON.stringify(agent)); alert("✅ Profile Updated!"); }
+    else alert("❌ Error: " + error.message);
+}
+
+async function changePass() {
+    const pass = document.getElementById('new-pass').value.trim();
+    if (pass.length < 4) return alert("Password kam se kam 4 character ka hona chahiye!");
+    const { error } = await sb.from('agents').update({ password: pass }).eq('partner_id', agent.partner_id);
+    if (!error) alert("✅ Password Updated!");
+    else alert("❌ Error: " + error.message);
+}
+
+function openBankModal(type) {
+    const isUpi = type === 'upi';
+    document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-bg" id="bank-modal" onclick="if(event.target.id==='bank-modal')closeModal('bank-modal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-5">
+                <p class="font-black uppercase italic text-sm" style="color:${isUpi?'#a78bfa':'#60a5fa'}">
+                    <i class="fa-solid fa-${isUpi?'mobile-screen':'building-columns'} mr-2"></i>Add ${isUpi?'UPI':'Bank Account'}
+                </p>
+                <button onclick="closeModal('bank-modal')" class="text-slate-500 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            ${isUpi ? `
+            <input type="text"  id="m-upi"      placeholder="UPI ID (yourname@bank)" class="mb-3">
+            <input type="text"  id="m-upi-name" placeholder="Holder Name"             class="mb-3">
+            ` : `
+            <input type="text"  id="m-holder"   placeholder="Account Holder Name"     class="mb-3">
+            <input type="text"  id="m-accno"    placeholder="Account Number"           class="mb-3">
+            <input type="text"  id="m-ifsc"     placeholder="IFSC Code"               class="mb-3" style="text-transform:uppercase">
+            <input type="text"  id="m-bank"     placeholder="Bank Name"               class="mb-3">
+            `}
+            <label class="flex items-center gap-3 mb-4 cursor-pointer">
+                <input type="checkbox" id="m-primary" style="width:18px;height:18px;accent-color:#3b82f6;padding:0;flex-shrink:0">
+                <span class="text-[11px] font-bold text-slate-300">Set as Primary</span>
+            </label>
+            <button onclick="saveBankAccount('${type}')" class="w-full py-4 rounded-xl font-black text-[10px] uppercase" style="background:${isUpi?'linear-gradient(135deg,#7c3aed,#4c1d95)':'linear-gradient(135deg,#3b82f6,#1e40af)'}">
+                Save Account
+            </button>
+        </div>
+    </div>`);
+}
+
+async function saveBankAccount(type) {
+    const isUpi = type === 'upi';
+    const isPrimary = document.getElementById('m-primary').checked;
+    let payload = { partner_id: agent.partner_id, type, is_primary: isPrimary, created_at: new Date().toISOString() };
+
+    if (isUpi) {
+        const upi = document.getElementById('m-upi').value.trim();
+        if (!upi) return alert("UPI ID zaroori hai!");
+        payload.upi_id = upi;
+        payload.holder_name = document.getElementById('m-upi-name').value.trim();
+    } else {
+        const holder = document.getElementById('m-holder').value.trim();
+        const accno  = document.getElementById('m-accno').value.trim();
+        const ifsc   = document.getElementById('m-ifsc').value.trim().toUpperCase();
+        if (!holder || !accno || !ifsc) return alert("Saari details bharein!");
+        payload.holder_name = holder; payload.account_no = accno; payload.ifsc = ifsc;
+        payload.bank_name = document.getElementById('m-bank').value.trim();
+    }
+
+    if (isPrimary) await sb.from('agent_bank_accounts').update({ is_primary: false }).eq('partner_id', agent.partner_id);
+    const { error } = await sb.from('agent_bank_accounts').insert([payload]);
+    if (!error) { closeModal('bank-modal'); renderSettings(); }
+    else alert("❌ Error: " + error.message);
+}
+
+async function setPrimary(id) {
+    await sb.from('agent_bank_accounts').update({ is_primary: false }).eq('partner_id', agent.partner_id);
+    await sb.from('agent_bank_accounts').update({ is_primary: true }).eq('id', id);
+    renderSettings();
+}
+
+async function delAccount(id) {
+    if (!confirm("Yeh account delete karein?")) return;
+    await sb.from('agent_bank_accounts').delete().eq('id', id);
+    renderSettings();
+}
+
+async function editAccount(id, type) {
+    const { data: acc } = await sb.from('agent_bank_accounts').select('*').eq('id', id).single();
+    if (!acc) return;
+    const isUpi = type === 'upi';
+    document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-bg" id="edit-modal" onclick="if(event.target.id==='edit-modal')closeModal('edit-modal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-5">
+                <p class="font-black uppercase italic text-sm" style="color:${isUpi?'#a78bfa':'#60a5fa'}"><i class="fa-solid fa-pen mr-2"></i>Edit Account</p>
+                <button onclick="closeModal('edit-modal')" class="text-slate-500 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            ${isUpi ? `
+            <input type="text" id="e-upi"      value="${acc.upi_id||''}"      placeholder="UPI ID"       class="mb-3">
+            <input type="text" id="e-upi-name" value="${acc.holder_name||''}" placeholder="Holder Name"   class="mb-3">
+            ` : `
+            <input type="text" id="e-holder"   value="${acc.holder_name||''}" placeholder="Holder Name"   class="mb-3">
+            <input type="text" id="e-accno"    value="${acc.account_no||''}"  placeholder="Account No"    class="mb-3">
+            <input type="text" id="e-ifsc"     value="${acc.ifsc||''}"        placeholder="IFSC"          class="mb-3" style="text-transform:uppercase">
+            <input type="text" id="e-bank"     value="${acc.bank_name||''}"   placeholder="Bank Name"     class="mb-3">
+            `}
+            <button onclick="updateAccount('${id}','${type}')" class="w-full py-4 rounded-xl font-black text-[10px] uppercase" style="background:${isUpi?'linear-gradient(135deg,#7c3aed,#4c1d95)':'linear-gradient(135deg,#3b82f6,#1e40af)'}">
+                Update Account
+            </button>
+        </div>
+    </div>`);
+}
+
+async function updateAccount(id, type) {
+    const isUpi = type === 'upi';
+    let updates = {};
+    if (isUpi) {
+        updates.upi_id = document.getElementById('e-upi').value.trim();
+        updates.holder_name = document.getElementById('e-upi-name').value.trim();
+    } else {
+        updates.holder_name = document.getElementById('e-holder').value.trim();
+        updates.account_no  = document.getElementById('e-accno').value.trim();
+        updates.ifsc        = document.getElementById('e-ifsc').value.trim().toUpperCase();
+        updates.bank_name   = document.getElementById('e-bank').value.trim();
+    }
+    const { error } = await sb.from('agent_bank_accounts').update(updates).eq('id', id);
+    if (!error) { closeModal('edit-modal'); renderSettings(); }
+    else alert("❌ Error: " + error.message);
+}
+
+// ═══════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

@@ -3,491 +3,740 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Salon AI — Owner Pro</title>
+    <title>Salon AI - Owner Pro Panel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Salon Owner Pro">
-    <meta name="theme-color" content="#3b82f6">
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js');
-        });
-      }
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; overflow-x: hidden; }
-        .wrap { max-width: 450px; margin: 0 auto; min-height: 100vh; background: #020617; position: relative; padding-bottom: 110px; }
-        .glass { background: rgba(30,41,59,0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 2rem; }
-        .g-blue { background: linear-gradient(135deg, #3b82f6, #1e40af); }
-        .g-green { background: linear-gradient(135deg, #10b981, #047857); }
-        .g-violet { background: linear-gradient(135deg, #7c3aed, #4c1d95); }
-        .g-amber { background: linear-gradient(135deg, #f59e0b, #b45309); }
-        .g-red { background: linear-gradient(135deg, #ef4444, #991b1b); }
-        input, select, textarea { background: rgba(255,255,255,0.06) !important; border: 1px solid rgba(255,255,255,0.12) !important; color: white !important; outline: none; border-radius: 0.75rem; width: 100%; padding: 14px 16px; font-size: 13px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif; }
-        input:focus, select:focus { border-color: #3b82f6 !important; }
+        .app-container { max-width: 450px; margin: 0 auto; min-height: 100vh; background: #020617; position: relative; }
+        .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 2rem; }
+        .gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); }
+        .gradient-emerald { background: linear-gradient(135deg, #10b981 0%, #047857 100%); }
+        .gradient-violet { background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%); }
+        .gradient-amber { background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); }
+        .gradient-red { background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); }
+        input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; outline: none; transition: 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: #3b82f6 !important; box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important; }
         input::placeholder, textarea::placeholder { color: #475569 !important; }
-        select option { background: #0f172a; }
-        .nav-active { color: #60a5fa !important; filter: drop-shadow(0 0 8px rgba(96,165,250,0.5)); }
+        select option { background: #0f172a; color: white; }
+        .nav-active { color: #60a5fa !important; filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.5)); }
         .hidden { display: none !important; }
+        /* Toggle Switch */
         .toggle-wrap { position: relative; display: inline-block; width: 56px; height: 28px; }
         .toggle-wrap input { opacity: 0; width: 0; height: 0; }
         .toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.1); border-radius: 28px; cursor: pointer; transition: 0.3s; }
         .toggle-slider:before { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; bottom: 3px; background: #64748b; border-radius: 50%; transition: 0.3s; }
         input:checked + .toggle-slider { background: linear-gradient(135deg, #10b981, #047857); }
         input:checked + .toggle-slider:before { transform: translateX(28px); background: white; }
+        /* Status pills */
         .pill { padding: 3px 10px; border-radius: 20px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
         .pill-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
         .pill-amber { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
         .pill-red { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
         .pill-blue { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-        .pill-purple { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        /* Modal */
         .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
         .modal-box { background: #0f172a; border-radius: 2rem 2rem 0 0; padding: 1.8rem; width: 100%; max-width: 450px; border-top: 1px solid rgba(255,255,255,0.1); max-height: 88vh; overflow-y: auto; }
+        /* Booking card */
         .booking-card { background: rgba(30,41,59,0.5); border: 1px solid rgba(255,255,255,0.07); border-radius: 1.5rem; padding: 1rem 1.2rem; margin-bottom: 12px; }
+        /* Slot grid */
         .slot-cell { border-radius: 10px; padding: 6px 4px; font-size: 9px; font-weight: 700; text-align: center; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
         .slot-free { background: rgba(16,185,129,0.12); color: #34d399; border-color: rgba(16,185,129,0.25); }
         .slot-blocked { background: rgba(239,68,68,0.12); color: #f87171; border-color: rgba(239,68,68,0.25); }
         .slot-booked { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); cursor: default; }
+        /* Day pill */
         .day-pill { padding: 8px 14px; border-radius: 20px; font-size: 10px; font-weight: 900; cursor: pointer; border: 1.5px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: #64748b; transition: all 0.2s; }
         .day-pill.on { border-color: #3b82f6; background: rgba(59,130,246,0.15); color: #60a5fa; }
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        /* Star rating */
+        .star { color: #334155; font-size: 20px; cursor: pointer; transition: color 0.15s; }
+        .star.lit { color: #fbbf24; }
+        /* Notification dot */
         .notif-dot { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; position: absolute; top: -2px; right: -2px; border: 2px solid #020617; }
-        @keyframes slideDown { from{opacity:0;transform:translateX(-50%) translateY(-20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner-sm { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
     </style>
 </head>
 <body>
-<div id="app" class="wrap">
+<div id="app" class="app-container">
 
-<!-- LOGIN SCREEN -->
-<div id="login-screen" class="p-8 pt-24">
-    <div class="w-20 h-20 g-blue rounded-3xl flex items-center justify-center mb-10 rotate-3 shadow-2xl shadow-blue-500/30">
-        <i class="fa-solid fa-shop text-white text-4xl"></i>
-    </div>
-    <h1 class="text-4xl font-black mb-2 tracking-tighter uppercase italic">Business <span class="text-blue-500">Login</span></h1>
-    <p class="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mb-12">Authorized Salon Access Only</p>
-    <div class="space-y-4">
-        <div class="relative">
-            <i class="fa-solid fa-phone absolute left-5 top-5 text-slate-500 text-sm"></i>
-            <input type="tel" id="l-phone" placeholder="Registered Phone" class="w-full p-5 pl-14 rounded-2xl font-bold text-sm">
+    <!-- ══════════════════════════════════════
+         LOGIN SCREEN
+    ══════════════════════════════════════ -->
+    <div id="login-screen" class="p-8 pt-24">
+        <div class="w-20 h-20 gradient-blue rounded-3xl flex items-center justify-center mb-10 rotate-3 shadow-2xl shadow-blue-500/30">
+            <i class="fa-solid fa-shop text-white text-4xl"></i>
         </div>
-        <div class="relative">
-            <i class="fa-solid fa-lock absolute left-5 top-5 text-slate-500 text-sm"></i>
-            <input type="password" id="l-pass" placeholder="Password" class="w-full p-5 pl-14 rounded-2xl font-bold text-sm" onkeydown="if(event.key==='Enter')handleLogin()">
-        </div>
-        <div id="login-err" class="hidden text-red-400 text-xs font-bold text-center p-3 bg-red-500/10 rounded-xl border border-red-500/20"></div>
-        <button onclick="handleLogin()" class="w-full g-blue text-white font-black py-5 rounded-2xl text-sm uppercase tracking-wider">
-            <i class="fa-solid fa-right-to-bracket mr-2"></i>Login
-        </button>
-        <button onclick="showForgotPass()" class="w-full text-center text-[10px] font-800 text-slate-500 uppercase tracking-widest bg-none border-none cursor-pointer py-2">
-            Forgot Password?
-        </button>
-    </div>
-</div>
-
-<!-- FORGOT PASSWORD MODAL -->
-<div id="forgot-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-end justify-center">
-    <div class="bg-[#0f172a] rounded-t-3xl p-7 w-full max-w-[450px] border-t border-white/10">
-        <h3 class="font-black uppercase italic text-sm text-blue-400 mb-5">Reset Password</h3>
-        <div class="space-y-3">
-            <input type="tel" id="fp-phone" placeholder="Registered Phone" class="w-full p-4 rounded-xl text-sm font-bold">
-            <input type="password" id="fp-newpass" placeholder="New Password" class="w-full p-4 rounded-xl text-sm font-bold">
-            <button onclick="handleForgotPass()" class="w-full g-blue text-white py-4 rounded-xl font-black text-xs uppercase">Reset Password</button>
-            <button onclick="document.getElementById('forgot-modal').classList.add('hidden')" class="w-full text-slate-500 text-xs font-bold uppercase py-2 bg-none border-none cursor-pointer">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- MAIN PANEL -->
-<div id="main-panel" class="hidden">
-    <!-- TOP BAR -->
-    <div class="flex items-center justify-between p-5 sticky top-0 z-10" style="background:rgba(2,6,23,0.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.05);">
-        <div>
-            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">SALON AI — OWNER</p>
-            <p id="salon-name-display" class="font-black text-base mt-0.5"></p>
-        </div>
-        <div class="flex items-center gap-3">
-            <!-- Online/Offline Toggle -->
-            <div class="flex items-center gap-2">
-                <span id="status-label" class="text-[9px] font-black uppercase tracking-wider text-slate-500">Offline</span>
-                <label class="toggle-wrap">
-                    <input type="checkbox" id="online-toggle" onchange="toggleOnlineStatus(this.checked)">
-                    <span class="toggle-slider"></span>
-                </label>
+        <h1 class="text-4xl font-black mb-2 tracking-tighter uppercase italic">Business <span class="text-blue-500">Login</span></h1>
+        <p class="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mb-12">Authorized Salon Access Only</p>
+        <div class="space-y-4">
+            <div class="relative">
+                <i class="fa-solid fa-phone absolute left-5 top-6 text-slate-500 text-sm"></i>
+                <input type="tel" id="l-phone" placeholder="REGISTERED PHONE" class="w-full p-6 pl-14 rounded-2xl font-bold text-sm">
             </div>
-            <button onclick="logout()" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);">
-                <i class="fa-solid fa-power-off text-xs"></i>
+            <div class="relative">
+                <i class="fa-solid fa-lock absolute left-5 top-6 text-slate-500 text-sm"></i>
+                <input type="password" id="l-pass" placeholder="6-DIGIT PASSWORD" class="w-full p-6 pl-14 rounded-2xl font-bold text-sm" maxlength="6">
+            </div>
+            <button onclick="handleLogin()" id="login-btn"
+                class="w-full gradient-blue text-white py-6 rounded-2xl font-black uppercase italic shadow-xl active:scale-95 transition-all">
+                Initialize Dashboard
+            </button>
+            <div class="text-center pt-2 flex flex-col gap-2">
+                <button onclick="showSetup()" class="text-[11px] font-black text-blue-400 uppercase tracking-widest py-2">
+                    <i class="fa-solid fa-key mr-2"></i>First Time? Set Password
+                </button>
+                <button onclick="showForgot()" class="text-[10px] font-black text-slate-500 uppercase tracking-widest py-2 opacity-70">
+                    <i class="fa-solid fa-rotate-left mr-2"></i>Forgot Password?
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SETUP SCREEN (First Time Password)
+    ══════════════════════════════════════ -->
+    <div id="setup-screen" class="p-8 pt-20 hidden">
+        <button onclick="showLogin()" class="text-slate-400 mb-6 flex items-center gap-2 text-sm font-bold">
+            <i class="fa-solid fa-chevron-left"></i> Back
+        </button>
+        <div class="w-14 h-14 gradient-violet rounded-2xl flex items-center justify-center mb-6 shadow-xl">
+            <i class="fa-solid fa-shield-halved text-white text-2xl"></i>
+        </div>
+        <h1 class="text-3xl font-black mb-1 tracking-tighter uppercase italic text-white">Setup <span class="text-blue-500">Access</span></h1>
+        <p class="text-slate-500 font-bold uppercase tracking-[0.15em] text-[10px] mb-8">
+            Sirf pehli baar password set karne ke liye
+        </p>
+        <div class="glass-card p-5 mb-6 flex items-start gap-3">
+            <i class="fa-solid fa-circle-info text-blue-400 mt-0.5"></i>
+            <p class="text-[10px] text-slate-400 leading-relaxed">
+                Agent ne WhatsApp par jo <b class="text-white">User ID</b> bheja hai woh enter karein — format: <span class="text-blue-400 font-black">SAL1234</span>
+            </p>
+        </div>
+        <div class="space-y-4">
+            <div class="relative">
+                <i class="fa-solid fa-id-card absolute left-5 top-6 text-slate-500 text-sm"></i>
+                <input type="text" id="s-userid" placeholder="USER ID (e.g. SAL1234)" class="w-full p-6 pl-14 rounded-2xl font-bold text-sm uppercase">
+            </div>
+            <div class="relative">
+                <i class="fa-solid fa-key absolute left-5 top-6 text-slate-500 text-sm"></i>
+                <input type="password" id="s-pass" placeholder="SET 6-DIGIT PASSWORD" class="w-full p-6 pl-14 rounded-2xl font-bold text-sm" maxlength="6">
+            </div>
+            <div class="relative">
+                <i class="fa-solid fa-key absolute left-5 top-6 text-slate-500 text-sm"></i>
+                <input type="password" id="s-pass2" placeholder="CONFIRM 6-DIGIT PASSWORD" class="w-full p-6 pl-14 rounded-2xl font-bold text-sm" maxlength="6">
+            </div>
+            <button onclick="handleFirstTimeSetup()" id="setup-btn"
+                class="w-full gradient-blue text-white py-6 rounded-2xl font-black uppercase italic shadow-xl active:scale-95 transition-all">
+                <i class="fa-solid fa-circle-check mr-2"></i>Activate Account
             </button>
         </div>
     </div>
 
-    <!-- CONTENT VIEW -->
-    <div id="content-view" class="p-5"></div>
-</div>
+    <!-- ══════════════════════════════════════
+         FORGOT PASSWORD SCREEN
+    ══════════════════════════════════════ -->
+    <div id="forgot-screen" class="p-8 pt-20 hidden">
+        <button onclick="showLogin()" class="text-slate-400 mb-6 flex items-center gap-2 text-sm font-bold">
+            <i class="fa-solid fa-chevron-left"></i> Back
+        </button>
+        <div class="w-14 h-14 gradient-amber rounded-2xl flex items-center justify-center mb-6 shadow-xl">
+            <i class="fa-solid fa-rotate-left text-white text-2xl"></i>
+        </div>
+        <h1 class="text-3xl font-black mb-1 tracking-tighter uppercase italic">Reset <span class="text-amber-400">Password</span></h1>
+        <p class="text-slate-500 font-bold uppercase tracking-[0.15em] text-[10px] mb-8">User ID se verify karein</p>
+        <div class="space-y-4">
+            <div class="relative">
+                <i class="fa-solid fa-id-card absolute left-5 top-6 text-slate-500 text-sm"></i>
+                <input type="text" id="f-userid" placeholder="USER ID (e.g. SAL1234)" class="w-full p-6 pl-14 rounded-2xl font-bold text-sm uppercase">
+            </div>
+            <div class="relative">
+                <i class="fa-solid fa-key absolute left-5 top-6 text-slate-500 text-sm"></i>
+                <input type="password" id="f-pass" placeholder="NEW 6-DIGIT PASSWORD" class="w-full p-6 pl-14 rounded-2xl font-bold text-sm" maxlength="6">
+            </div>
+            <button onclick="handleForgotPassword()" id="forgot-btn"
+                class="w-full gradient-amber text-white py-6 rounded-2xl font-black uppercase italic shadow-xl active:scale-95 transition-all">
+                <i class="fa-solid fa-rotate-left mr-2"></i>Reset Password
+            </button>
+        </div>
+    </div>
 
-</div>
+    <!-- ══════════════════════════════════════
+         MAIN PANEL
+    ══════════════════════════════════════ -->
+    <div id="main-panel" class="hidden pb-28">
+        <!-- Sticky Header -->
+        <div class="p-5 pt-10 flex justify-between items-center sticky top-0 bg-[#020617]/90 backdrop-blur-lg z-50 border-b border-white/5">
+            <div>
+                <p id="owner-name-display" class="text-[10px] font-black text-blue-400 uppercase italic tracking-widest"></p>
+                <h1 id="salon-name-display" class="text-xl font-black uppercase text-white tracking-tighter leading-none"></h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Online/Offline Toggle -->
+                <div class="flex items-center gap-2">
+                    <label class="toggle-wrap">
+                        <input type="checkbox" id="availability-toggle" onchange="toggleAvailability(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span id="avail-label" class="text-[9px] font-black uppercase text-slate-500">Offline</span>
+                </div>
+                <button onclick="location.reload()" class="w-10 h-10 glass-card flex items-center justify-center text-red-400 shadow-lg rounded-2xl">
+                    <i class="fa-solid fa-power-off text-sm"></i>
+                </button>
+            </div>
+        </div>
+        <div id="content-view" class="p-5"></div>
+    </div>
 
-<!-- BOTTOM NAV -->
-<nav id="navbar" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] glass py-4 px-6 flex justify-between items-center z-50 shadow-2xl" style="border-radius:2rem">
-    <button onclick="switchTab('bookings')" id="nav-bookings" class="text-slate-500 text-xl transition-all relative">
-        <i class="fa-solid fa-calendar-check"></i>
-        <span id="booking-notif" class="notif-dot hidden"></span>
-    </button>
-    <button onclick="switchTab('slots')" id="nav-slots" class="text-slate-500 text-xl transition-all"><i class="fa-solid fa-clock"></i></button>
-    <button onclick="switchTab('services')" id="nav-services" class="g-blue w-14 h-14 rounded-2xl shadow-xl -mt-10 border-[6px] border-[#020617] flex items-center justify-center"><i class="fa-solid fa-scissors text-xl"></i></button>
-    <button onclick="switchTab('earnings')" id="nav-earnings" class="text-slate-500 text-xl transition-all"><i class="fa-solid fa-indian-rupee-sign"></i></button>
-    <button onclick="switchTab('settings')" id="nav-settings" class="text-slate-500 text-xl transition-all"><i class="fa-solid fa-gear"></i></button>
-</nav>
+    <!-- Bottom Nav -->
+    <nav id="navbar" class="fixed bottom-5 left-1/2 -translate-x-1/2 w-[94%] max-w-[420px] glass-card py-4 px-6 flex justify-between items-center z-50 hidden shadow-2xl">
+        <button onclick="switchTab('bookings')" id="nav-bookings" class="nav-active flex flex-col items-center gap-1 relative">
+            <i class="fa-solid fa-calendar-day text-xl"></i>
+            <span class="text-[8px] font-black uppercase">Bookings</span>
+            <span id="booking-notif" class="notif-dot hidden"></span>
+        </button>
+        <button onclick="switchTab('slots')" id="nav-slots" class="text-slate-500 flex flex-col items-center gap-1 transition-all">
+            <i class="fa-solid fa-clock text-xl"></i>
+            <span class="text-[8px] font-black uppercase">Slots</span>
+        </button>
+        <button onclick="switchTab('services')" id="nav-services" class="text-slate-500 flex flex-col items-center gap-1 transition-all">
+            <i class="fa-solid fa-list-check text-xl"></i>
+            <span class="text-[8px] font-black uppercase">Services</span>
+        </button>
+        <button onclick="switchTab('earnings')" id="nav-earnings" class="text-slate-500 flex flex-col items-center gap-1 transition-all">
+            <i class="fa-solid fa-indian-rupee-sign text-xl"></i>
+            <span class="text-[8px] font-black uppercase">Earnings</span>
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings" class="text-slate-500 flex flex-col items-center gap-1 transition-all">
+            <i class="fa-solid fa-gear text-xl"></i>
+            <span class="text-[8px] font-black uppercase">Settings</span>
+        </button>
+    </nav>
+</div>
 
 <script>
-// ═══════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════
 const SUPABASE_URL = 'https://mlflzzcvbnfuhcoojcmv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_izxuZIgnWWe13aUwQ5quPw_Kg76ioy4';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentSalon = JSON.parse(localStorage.getItem('salonOwner')) || null;
+let currentSalon = null;
 let notifInterval = null;
 
-// ─── UTILS ───
-const show = id => document.getElementById(id)?.classList.remove('hidden');
-const hide = id => document.getElementById(id)?.classList.add('hidden');
+// ══════════════════════════════════════
+// SCREEN NAVIGATION
+// ══════════════════════════════════════
+function showSetup()  { hide('login-screen'); hide('forgot-screen'); show('setup-screen'); }
+function showLogin()  { hide('setup-screen'); hide('forgot-screen'); show('login-screen'); }
+function showForgot() { hide('login-screen'); hide('setup-screen'); show('forgot-screen'); }
+function show(id) { document.getElementById(id)?.classList.remove('hidden'); }
+function hide(id) { document.getElementById(id)?.classList.add('hidden'); }
 
-function toast(msg, type = 'green') {
-    let t = document.getElementById('salon-toast');
-    if (!t) { t = document.createElement('div'); t.id = 'salon-toast'; t.style.cssText = 'position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:9999;padding:12px 24px;border-radius:14px;font-size:12px;font-weight:800;max-width:90vw;text-align:center;font-family:Plus Jakarta Sans,sans-serif;transition:opacity .3s;'; document.body.appendChild(t); }
-    t.textContent = msg;
-    t.style.background = type === 'red' ? 'rgba(239,68,68,0.9)' : type === 'amber' ? 'rgba(245,158,11,0.9)' : 'rgba(16,185,129,0.9)';
-    t.style.color = 'white';
-    t.style.opacity = '1';
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.style.opacity = '0', 3000);
+// ══════════════════════════════════════
+// FIRST TIME SETUP  ← BUG FIXED HERE
+// ══════════════════════════════════════
+async function handleFirstTimeSetup() {
+    const userId = document.getElementById('s-userid').value.trim().toUpperCase();
+    const pass1  = document.getElementById('s-pass').value.trim();
+    const pass2  = document.getElementById('s-pass2').value.trim();
+    const btn    = document.getElementById('setup-btn');
+
+    if (!userId) return alert("User ID daalna zaroori hai!\nAgent ne WhatsApp par bheja hai.");
+    if (!pass1 || !pass2) return alert("Password aur confirm password bhariye!");
+    if (pass1 !== pass2) return alert("Dono passwords match nahi karte!");
+    if (pass1.length !== 6 || !/^\d+$/.test(pass1)) return alert("Sirf 6 angon ka password chahiye!\n(Jaise: 123456)");
+
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Verifying...';
+    btn.disabled = true;
+
+    try {
+        // owner_id se dhundho (agent jo generate karta hai)
+        let { data, error } = await supabaseClient
+            .from('salons')
+            .select('id, owner_id, password, status')
+            .eq('owner_id', userId)
+            .maybeSingle();
+
+        // Agar owner_id se nahi mila, user_id se try karo
+        if (!data) {
+            const res2 = await supabaseClient
+                .from('salons')
+                .select('id, owner_id, password, status')
+                .eq('user_id', userId)
+                .maybeSingle();
+            data = res2.data;
+            error = res2.error;
+        }
+
+        if (!data) {
+            alert("❌ Yeh User ID registered nahi hai.\nAgent ne WhatsApp par jo ID bheja hai wahi enter karein.\nFormat: SAL1234");
+            return;
+        }
+
+        if (data.status === 'blocked') {
+            alert("🚫 Account block hai. Admin se contact karein.");
+            return;
+        }
+
+        // Agar password pehle se set hai
+        if (data.password && data.password.trim() !== '') {
+            alert("⚠️ Is account ka password pehle se set hai!\nAgar bhool gaye hain toh 'Forgot Password' use karein.");
+            showLogin();
+            return;
+        }
+
+        const { error: updateError } = await supabaseClient
+            .from('salons')
+            .update({ password: pass1 })
+            .eq('id', data.id);
+
+        if (!updateError) {
+            alert("✅ Password set ho gaya!\nAb mobile number aur password se login karein.");
+            // Fields clear karo
+            document.getElementById('s-userid').value = '';
+            document.getElementById('s-pass').value = '';
+            document.getElementById('s-pass2').value = '';
+            showLogin();
+        } else {
+            alert("❌ Password save nahi hua.\nError: " + updateError.message);
+        }
+    } catch (e) {
+        alert("❌ Server error!\nInternet connection check karein.\n" + e.message);
+    } finally {
+        btn.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i>Activate Account';
+        btn.disabled = false;
+    }
 }
 
-// ─── INIT ───
-window.onload = function() {
-    if (currentSalon) afterLogin();
-    // else show login screen (already visible)
-};
+// ══════════════════════════════════════
+// FORGOT PASSWORD
+// ══════════════════════════════════════
+async function handleForgotPassword() {
+    const userId = document.getElementById('f-userid').value.trim().toUpperCase();
+    const pass   = document.getElementById('f-pass').value.trim();
+    const btn    = document.getElementById('forgot-btn');
 
-// ─── AUTH ───
+    if (!userId) return alert("User ID daalna zaroori hai!");
+    if (!pass) return alert("Naya password bhariye!");
+    if (pass.length !== 6 || !/^\d+$/.test(pass)) return alert("Sirf 6 angon ka password chahiye!\n(Jaise: 123456)");
+
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Verifying...';
+    btn.disabled = true;
+
+    try {
+        let { data } = await supabaseClient
+            .from('salons').select('id').eq('owner_id', userId).maybeSingle();
+
+        if (!data) {
+            const res2 = await supabaseClient
+                .from('salons').select('id').eq('user_id', userId).maybeSingle();
+            data = res2.data;
+        }
+
+        if (!data) {
+            alert("❌ Yeh User ID registered nahi hai.\nAgent ne jo ID bheja hai wahi enter karein.");
+            return;
+        }
+
+        const { error: upErr } = await supabaseClient
+            .from('salons').update({ password: pass }).eq('id', data.id);
+
+        if (!upErr) {
+            alert("✅ Password reset ho gaya!\nAb mobile number aur naye password se login karein.");
+            document.getElementById('f-userid').value = '';
+            document.getElementById('f-pass').value = '';
+            showLogin();
+        } else {
+            alert("❌ Error: " + upErr.message);
+        }
+    } catch(e) {
+        alert("❌ Server error! " + e.message);
+    } finally {
+        btn.innerHTML = '<i class="fa-solid fa-rotate-left mr-2"></i>Reset Password';
+        btn.disabled = false;
+    }
+}
+
+// ══════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════
 async function handleLogin() {
+    const btn   = document.getElementById('login-btn');
     const phone = document.getElementById('l-phone').value.trim();
-    const pass = document.getElementById('l-pass').value.trim();
-    const errEl = document.getElementById('login-err');
-    errEl.classList.add('hidden');
+    const pass  = document.getElementById('l-pass').value.trim();
 
-    if (!phone || !pass) { errEl.textContent = 'Fill all fields'; errEl.classList.remove('hidden'); return; }
+    if (!phone || !pass) return alert("Details fill karein.");
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Processing...';
+    btn.disabled = true;
 
-    const { data, error } = await sb.from('salons').select('*').eq('phone', phone).single();
-    if (error || !data) { errEl.textContent = '❌ Account not found'; errEl.classList.remove('hidden'); return; }
-    if (data.password !== pass) { errEl.textContent = '❌ Wrong password'; errEl.classList.remove('hidden'); return; }
-    if (data.status === 'blocked') { errEl.textContent = '🚫 Account blocked. Contact admin.'; errEl.classList.remove('hidden'); return; }
-    if (data.status === 'pending') { errEl.textContent = '⏳ Account pending approval.'; errEl.classList.remove('hidden'); return; }
+    try {
+        const { data, error } = await supabaseClient
+            .from('salons').select('*').eq('phone', phone).eq('password', pass);
 
-    localStorage.setItem('salonOwner', JSON.stringify(data));
-    currentSalon = data;
-    afterLogin();
+        if (data && data.length > 0) {
+            const salon = data[0];
+
+            // ── BLOCK CHECK ──
+            if (salon.status === 'blocked') {
+                alert("🚫 Aapka salon account block kar diya gaya hai. Admin se contact karein.");
+                btn.innerHTML = 'Initialize Dashboard';
+                btn.disabled = false;
+                return;
+            }
+
+            currentSalon = salon;
+            hide('login-screen');
+            show('main-panel');
+            show('navbar');
+            document.getElementById('salon-name-display').innerText = currentSalon.name || 'My Salon';
+            document.getElementById('owner-name-display').innerText = `Hello, ${currentSalon.owner_name || 'Owner'}`;
+
+            // Set availability toggle
+            const toggle = document.getElementById('availability-toggle');
+            toggle.checked = currentSalon.is_online || false;
+            document.getElementById('avail-label').innerText = toggle.checked ? 'Online' : 'Offline';
+            document.getElementById('avail-label').style.color = toggle.checked ? '#34d399' : '#64748b';
+
+            switchTab('bookings');
+            startNotifPoll();
+        } else {
+            alert("❌ Phone ya password galat hai!");
+        }
+    } catch (err) {
+        alert("Login Error! Internet check karein.");
+    } finally {
+        btn.innerHTML = 'Initialize Dashboard';
+        btn.disabled = false;
+    }
 }
 
-function showForgotPass() { document.getElementById('forgot-modal').classList.remove('hidden'); }
-
-async function handleForgotPass() {
-    const phone = document.getElementById('fp-phone').value.trim();
-    const newpass = document.getElementById('fp-newpass').value.trim();
-    if (!phone || !newpass) return toast('Fill all fields', 'red');
-    const { data, error } = await sb.from('salons').update({ password: newpass }).eq('phone', phone).select();
-    if (error || !data?.length) return toast('Phone not found', 'red');
-    toast('Password reset! Please login.');
-    document.getElementById('forgot-modal').classList.add('hidden');
+// ══════════════════════════════════════
+// AVAILABILITY TOGGLE
+// ══════════════════════════════════════
+async function toggleAvailability(isOnline) {
+    document.getElementById('avail-label').innerText = isOnline ? 'Online' : 'Offline';
+    document.getElementById('avail-label').style.color = isOnline ? '#34d399' : '#64748b';
+    await supabaseClient.from('salons').update({ is_online: isOnline }).eq('id', currentSalon.id);
+    currentSalon.is_online = isOnline;
 }
 
-function afterLogin() {
-    hide('login-screen');
-    show('main-panel');
-    show('navbar');
-    document.getElementById('salon-name-display').textContent = currentSalon.name || 'My Salon';
-    const onlineToggle = document.getElementById('online-toggle');
-    if (onlineToggle) onlineToggle.checked = currentSalon.is_online || false;
-    updateStatusLabel(currentSalon.is_online || false);
-    switchTab('bookings');
-
-    // Periodic checks
-    if (notifInterval) clearInterval(notifInterval);
+// ══════════════════════════════════════
+// NOTIFICATION POLL
+// ══════════════════════════════════════
+function startNotifPoll() {
+    checkNewBookings();
     notifInterval = setInterval(checkNewBookings, 30000);
-
-    // Block status check
+    // Block status check every 60 seconds for already-logged-in salons
     setInterval(async () => {
         if (!currentSalon) return;
-        const { data } = await sb.from('salons').select('status').eq('id', currentSalon.id).single();
-        if (data?.status === 'blocked') {
+        const { data } = await supabaseClient.from('salons').select('status').eq('id', currentSalon.id).single();
+        if (data && data.status === 'blocked') {
             clearInterval(notifInterval);
-            logout(true);
-            toast('🚫 Account blocked by admin.', 'red');
+            currentSalon = null;
+            hide('main-panel'); hide('navbar');
+            show('login-screen');
+            alert("🚫 Aapka account admin ne block kar diya hai. Admin se contact karein.");
         }
     }, 60000);
 }
-
-async function toggleOnlineStatus(val) {
-    await sb.from('salons').update({ is_online: val }).eq('id', currentSalon.id);
-    currentSalon.is_online = val;
-    localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
-    updateStatusLabel(val);
-    toast(val ? '🟢 Salon Online!' : '🔴 Salon Offline');
-}
-
-function updateStatusLabel(val) {
-    const lbl = document.getElementById('status-label');
-    if (lbl) { lbl.textContent = val ? 'Online' : 'Offline'; lbl.style.color = val ? '#34d399' : '#64748b'; }
-}
-
-function logout(forced = false) {
-    clearInterval(notifInterval);
-    localStorage.removeItem('salonOwner');
-    currentSalon = null;
-    hide('main-panel'); hide('navbar');
-    show('login-screen');
-    document.getElementById('l-phone').value = '';
-    document.getElementById('l-pass').value = '';
-}
-
-// ─── NAV ───
-function switchTab(tab) {
-    document.querySelectorAll('nav button[id^="nav-"]').forEach(b => { b.classList.remove('nav-active'); b.classList.add('text-slate-500'); });
-    const btn = document.getElementById('nav-' + tab);
-    if (btn) { btn.classList.add('nav-active'); btn.classList.remove('text-slate-500'); }
-    if (tab === 'bookings')  renderBookings();
-    if (tab === 'slots')     renderSlots();
-    if (tab === 'services')  renderServices();
-    if (tab === 'earnings')  renderEarnings();
-    if (tab === 'settings')  renderSettings();
-}
-
-// ─── NOTIFICATIONS ───
 async function checkNewBookings() {
-    if (!currentSalon) return;
-    const { data } = await sb.from('bookings').select('id').eq('salon_id', currentSalon.id).eq('status', 'confirmed');
+    const { data } = await supabaseClient
+        .from('bookings').select('id').eq('salon_id', currentSalon.id).eq('status', 'pending');
     const dot = document.getElementById('booking-notif');
-    if (data?.length) dot?.classList.remove('hidden');
-    else dot?.classList.add('hidden');
+    if (data && data.length > 0) { dot?.classList.remove('hidden'); }
+    else { dot?.classList.add('hidden'); }
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════
+function switchTab(tab) {
+    document.querySelectorAll('nav button').forEach(b => {
+        b.classList.remove('nav-active');
+        b.classList.add('text-slate-500');
+    });
+    const activeBtn = document.getElementById(`nav-${tab}`);
+    if (activeBtn) { activeBtn.classList.add('nav-active'); activeBtn.classList.remove('text-slate-500'); }
+
+    if (tab === 'bookings') renderBookings();
+    if (tab === 'slots')    renderSlots();
+    if (tab === 'services') renderServices();
+    if (tab === 'earnings') renderEarnings();
+    if (tab === 'settings') renderSettings();
+}
+
+// ══════════════════════════════════════
 // BOOKINGS TAB
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 async function renderBookings() {
     const cv = document.getElementById('content-view');
-    cv.innerHTML = `<div class="flex justify-center py-10"><div class="spinner-sm"></div></div>`;
+    cv.innerHTML = `<div class="flex justify-center py-10"><i class="fa-solid fa-spinner fa-spin text-blue-400 text-2xl"></i></div>`;
 
     const today = new Date().toISOString().split('T')[0];
-    const { data: bookings } = await sb.from('bookings').select('*').eq('salon_id', currentSalon.id).order('created_at', { ascending: false });
+    const { data: bookings } = await supabaseClient
+        .from('bookings')
+        .select('*')
+        .eq('salon_id', currentSalon.id)
+        .order('created_at', { ascending: false });
 
-    const todayBks = (bookings || []).filter(b => b.booking_date === today);
-    const revenue = todayBks.filter(b => b.status === 'confirmed').reduce((s, b) => s + (b.total_amount || 0), 0);
-    const pending = (bookings || []).filter(b => b.status === 'pending');
-    const commission = _appSettings?.commission_fee || currentSalon.booking_fee || 5;
+    const todayBkgs = (bookings || []).filter(b => b.booking_date === today);
+    const revenue   = todayBkgs.filter(b => b.status === 'confirmed').reduce((s, b) => s + (b.price || 0), 0);
+    const pending   = (bookings || []).filter(b => b.status === 'pending');
+
+    // Auto-accept setting
+    const autoAccept = currentSalon.auto_accept || false;
 
     cv.innerHTML = `
     <h2 class="text-2xl font-black uppercase italic mb-5">Bookings <span class="text-blue-500">Center</span></h2>
 
+    <!-- Stats -->
     <div class="grid grid-cols-3 gap-3 mb-5">
-        <div class="glass p-4 text-center" style="border-top:2px solid #3b82f6;border-radius:1.2rem;">
+        <div class="glass-card p-4 text-center border-t-2 border-blue-500">
             <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Today</p>
-            <h2 class="text-2xl font-black">${todayBks.length}</h2>
+            <h2 class="text-2xl font-black italic">${todayBkgs.length}</h2>
         </div>
-        <div class="glass p-4 text-center" style="border-top:2px solid #10b981;border-radius:1.2rem;">
+        <div class="glass-card p-4 text-center border-t-2 border-emerald-500">
             <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Revenue</p>
-            <h2 class="text-xl font-black text-emerald-400">₹${revenue}</h2>
+            <h2 class="text-xl font-black italic text-emerald-400">₹${revenue}</h2>
         </div>
-        <div class="glass p-4 text-center" style="border-top:2px solid #f59e0b;border-radius:1.2rem;">
+        <div class="glass-card p-4 text-center border-t-2 border-amber-500">
             <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Pending</p>
-            <h2 class="text-2xl font-black text-amber-400">${pending.length}</h2>
+            <h2 class="text-2xl font-black italic text-amber-400">${pending.length}</h2>
         </div>
     </div>
 
-    <div class="glass p-4 flex items-center justify-between mb-5" style="border-radius:1.2rem;">
+    <!-- Auto Accept Toggle -->
+    <div class="glass-card p-4 flex items-center justify-between mb-5">
         <div>
-            <p class="text-xs font-black text-white uppercase">Auto-Accept</p>
-            <p class="text-[9px] text-slate-500 mt-0.5">Admin verify ke baad auto-confirm</p>
+            <p class="text-xs font-black text-white uppercase">Auto-Accept Bookings</p>
+            <p class="text-[9px] text-slate-500 mt-0.5">New bookings automatically confirm ho jayengi</p>
         </div>
         <label class="toggle-wrap">
-            <input type="checkbox" id="auto-toggle" ${currentSalon.auto_accept?'checked':''} onchange="setAutoAccept(this.checked)">
+            <input type="checkbox" id="auto-accept-toggle" ${autoAccept ? 'checked' : ''} onchange="setAutoAccept(this.checked)">
             <span class="toggle-slider"></span>
         </label>
     </div>
 
+    <!-- Filter Pills -->
     <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
-        <button onclick="filterBk('all')" class="pill pill-blue whitespace-nowrap">All</button>
-        <button onclick="filterBk('pending')" class="pill pill-amber whitespace-nowrap">Pending</button>
-        <button onclick="filterBk('confirmed')" class="pill pill-green whitespace-nowrap">Confirmed</button>
-        <button onclick="filterBk('completed')" class="pill pill-purple whitespace-nowrap">Completed</button>
-        <button onclick="filterBk('cancelled')" class="pill pill-red whitespace-nowrap">Cancelled</button>
+        <button onclick="filterBookings('all','${today}')" class="pill pill-blue whitespace-nowrap">All</button>
+        <button onclick="filterBookings('pending','${today}')" class="pill pill-amber whitespace-nowrap">Pending</button>
+        <button onclick="filterBookings('confirmed','${today}')" class="pill pill-green whitespace-nowrap">Confirmed</button>
+        <button onclick="filterBookings('cancelled','${today}')" class="pill pill-red whitespace-nowrap">Cancelled</button>
     </div>
 
-    <div id="bk-list">
-        ${(bookings || []).length === 0 ? '<p class="text-center text-slate-600 text-xs py-10 uppercase tracking-widest font-black">Koi booking nahi</p>' :
-            (bookings || []).map(b => renderBkCard(b, commission)).join('')}
-    </div>`;
-    window._allBks = bookings || [];
-    window._bkCommission = commission;
-}
-
-function renderBkCard(b, commission) {
-    const colorMap = { confirmed:'#34d399', cancelled:'#f87171', completed:'#a78bfa', pending:'#fbbf24', pending_admin:'#fbbf24', rejected:'#f87171' };
-    const c = colorMap[b.status] || '#64748b';
-    const slotTime = b.slot_time ? new Date(b.slot_time) : null;
-    const now = new Date();
-    const diffHrs = slotTime ? (slotTime - now) / 3600000 : 999;
-    const canCancel = (b.status === 'confirmed' || b.status === 'pending') && diffHrs > 2;
-    const net = (b.total_amount || 0) - (commission || 5);
-
-    return `
-    <div class="booking-card" style="border-left:3px solid ${c};">
-        <div class="flex justify-between items-start mb-3">
-            <div>
-                <p class="font-black text-sm text-white">${b.customer_name || b.customer_phone}</p>
-                <p class="text-[10px] text-slate-400 mt-0.5">${b.service_name || 'Service'}</p>
-                ${slotTime ? `<p class="text-[9px] text-slate-500 mt-0.5">${slotTime.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</p>` : ''}
-            </div>
-            <span class="pill" style="background:${c}22;color:${c};border:1px solid ${c}44;">${b.status}</span>
-        </div>
-        <div class="flex justify-between items-center">
-            <div>
-                <p class="text-xl font-black text-white">₹${b.total_amount || 0}</p>
-                <p class="text-[9px] text-emerald-400 font-black">Net: ₹${net} (after ₹${commission} fee)</p>
-                ${b.booking_code ? `<p class="text-[9px] text-blue-400 font-black mt-0.5">Code: ${b.booking_code}</p>` : ''}
-            </div>
-            <div class="flex gap-2">
-                ${b.status === 'confirmed' ? `<button onclick="openVerifyModal('${b.id}')" class="pill pill-green cursor-pointer">✅ Complete</button>` : ''}
-                ${canCancel ? `<button onclick="cancelBk('${b.id}','${b.booking_date}','${b.booking_time||''}')" class="pill pill-red cursor-pointer">Cancel</button>` : ''}
-                ${b.status === 'pending' ? `<button onclick="confirmBk('${b.id}')" class="pill pill-blue cursor-pointer">Accept</button>` : ''}
-            </div>
-        </div>
+    <!-- Booking List -->
+    <div id="booking-list">
+        ${renderBookingCards(bookings || [])}
     </div>`;
 }
 
-function filterBk(status) {
-    const el = document.getElementById('bk-list');
-    if (!el) return;
-    const list = status === 'all' ? window._allBks : window._allBks.filter(b => b.status === status);
-    el.innerHTML = list.length ? list.map(b => renderBkCard(b, window._bkCommission)).join('') :
-        `<p class="text-center text-slate-600 text-xs py-8 uppercase tracking-widest font-black">Koi ${status} booking nahi</p>`;
-}
+function renderBookingCards(list) {
+    if (!list.length) return `
+        <div class="glass-card p-10 text-center opacity-40 mt-4">
+            <i class="fa-solid fa-calendar-xmark text-3xl mb-3"></i>
+            <p class="text-[10px] font-black uppercase tracking-widest">Koi booking nahi mili</p>
+        </div>`;
 
-async function confirmBk(id) {
-    await sb.from('bookings').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', id);
-    toast('✅ Booking confirmed!');
-    renderBookings();
-}
+    return list.map(b => {
+        const statusPill = b.status === 'confirmed' ? 'pill-green' :
+                           b.status === 'cancelled' ? 'pill-red' : 'pill-amber';
+        const statusLabel = b.status === 'confirmed' ? 'Confirmed' :
+                            b.status === 'cancelled' ? 'Cancelled' : 'Pending';
+        const dt = b.booking_date ? `${b.booking_date} ${b.booking_time || ''}` : 'N/A';
+        const canCancel = canCancelBooking(b);
 
-async function cancelBk(id, date, time) {
-    const bookingDT = new Date(`${date}T${time||'00:00'}`);
-    const diffHrs = (bookingDT - new Date()) / 3600000;
-    if (diffHrs <= 2) {
-        toast('❌ Cancel allowed nahi — 2 ghante se kam baki hai!', 'red');
-        return;
-    }
-    if (!confirm('Yeh booking cancel karein?')) return;
-    await sb.from('bookings').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', id);
-    toast('Booking cancelled', 'amber');
-    renderBookings();
-}
-
-function openVerifyModal(bookingId) {
-    const existing = document.getElementById('verify-modal');
-    if (existing) existing.remove();
-    document.body.insertAdjacentHTML('beforeend', `
-    <div id="verify-modal" class="modal-bg" onclick="if(event.target===this)this.remove()">
-        <div class="modal-box">
-            <div class="text-center mb-5">
-                <div class="w-12 h-12 g-blue rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <i class="fa-solid fa-key text-white"></i>
+        return `
+        <div class="booking-card">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <p class="font-black text-sm text-white">${b.customer_name || 'Customer'}</p>
+                    <p class="text-[9px] text-slate-400">${b.customer_phone || ''}</p>
                 </div>
-                <p class="font-black text-sm text-white uppercase">Customer Code Verify</p>
-                <p class="text-[10px] text-slate-500 mt-1">Customer se 5-digit booking code lo</p>
+                <span class="pill ${statusPill}">${statusLabel}</span>
             </div>
-            <input type="text" id="verify-inp" maxlength="5" placeholder="- - - - -"
-                class="w-full mb-4 text-center font-black"
-                style="font-size:28px;letter-spacing:.4em;font-family:monospace;"
+            <div class="flex justify-between items-center mb-3">
+                <div>
+                    <p class="text-[10px] text-slate-400"><i class="fa-solid fa-scissors mr-1"></i>${b.service_name || 'Service'}</p>
+                    <p class="text-[10px] text-slate-400"><i class="fa-solid fa-clock mr-1"></i>${dt}</p>
+                    <p class="text-[10px] text-slate-400"><i class="fa-solid fa-credit-card mr-1"></i>${b.payment_method || 'N/A'} • ₹${b.price || 0}</p>
+                </div>
+            </div>
+            ${b.status === 'pending' ? `
+            <div class="flex gap-2">
+                <button onclick="updateBookingStatus('${b.id}','confirmed')"
+                    class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase" style="background:rgba(16,185,129,0.2);color:#34d399;border:1px solid rgba(16,185,129,0.3)">
+                    <i class="fa-solid fa-check mr-1"></i>Accept
+                </button>
+                <button onclick="updateBookingStatus('${b.id}','cancelled')"
+                    class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)">
+                    <i class="fa-solid fa-xmark mr-1"></i>Reject
+                </button>
+            </div>` : b.status === 'confirmed' ? `
+            <div class="flex flex-col gap-2">
+                <button onclick="openVerifyCode('${b.id}')" class="w-full py-3 rounded-xl font-black text-[10px] uppercase" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)">
+                    <i class="fa-solid fa-key mr-1"></i>Customer Code Verify &amp; Complete
+                </button>
+                ${canCancel ? `
+                <button onclick="cancelConfirmedBooking('${b.id}','${b.booking_date}','${b.booking_time || ''}')"
+                    class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25)">
+                    <i class="fa-solid fa-ban mr-1"></i>Cancel
+                </button>` : `
+                <p class="text-[9px] text-slate-600 italic w-full text-center py-2">⏰ 2 ghante se kam bacha — cancel nahi ho sakta</p>`}
+            </div>` : b.status === 'completed' ? `
+            <div class="flex items-center justify-center py-2">
+                <span style="color:#34d399;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;">&#10003; Service Completed</span>
+            </div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function canCancelBooking(b) {
+    if (!b.booking_date || !b.booking_time) return true;
+    const bookingDT = new Date(`${b.booking_date}T${b.booking_time}`);
+    const now = new Date();
+    const diffHrs = (bookingDT - now) / 36e5;
+    return diffHrs > 2; // Only allow cancel if more than 2 hours remain
+}
+
+async function filterBookings(status, today) {
+    let query = supabaseClient.from('bookings').select('*').eq('salon_id', currentSalon.id).order('created_at', { ascending: false });
+    if (status !== 'all') query = query.eq('status', status);
+    const { data } = await query;
+    document.getElementById('booking-list').innerHTML = renderBookingCards(data || []);
+}
+
+function openVerifyCode(bookingId) {
+    // Remove existing modal if any
+    document.getElementById('verify-modal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', `
+    <div id="verify-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px);">
+        <div style="background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px;width:100%;max-width:360px;">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="width:52px;height:52px;background:rgba(59,130,246,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:1px solid rgba(59,130,246,0.3);">
+                    <i class="fa-solid fa-key" style="color:#60a5fa;font-size:20px;"></i>
+                </div>
+                <p style="font-size:16px;font-weight:900;color:white;text-transform:uppercase;letter-spacing:0.05em;">Customer Code Verify</p>
+                <p style="font-size:10px;color:#64748b;margin-top:4px;">Customer se 5-digit booking code lo</p>
+            </div>
+            <input type="text" id="verify-code-input" maxlength="5" placeholder="- - - - -"
+                style="width:100%;background:#161b22;border:1px solid rgba(255,255,255,0.15);color:white;border-radius:12px;padding:18px;font-size:28px;font-weight:900;text-align:center;letter-spacing:0.4em;outline:none;font-family:monospace;margin-bottom:16px;"
                 oninput="this.value=this.value.replace(/\D/g,'')">
-            <div id="verify-err" class="hidden text-red-400 text-xs text-center mb-3 font-bold"></div>
-            <button onclick="verifyAndComplete('${bookingId}')" class="w-full g-blue text-white py-4 rounded-2xl font-black text-xs uppercase mb-3">
-                ✅ Verify & Complete
+            <div id="verify-err" style="display:none;background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px;font-size:11px;font-weight:700;text-align:center;margin-bottom:12px;"></div>
+            <button onclick="verifyAndComplete('${bookingId}')"
+                style="width:100%;background:#3b82f6;color:white;border:none;border-radius:12px;padding:16px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;margin-bottom:10px;">
+                <i class="fa-solid fa-circle-check mr-2"></i>Verify &amp; Mark Complete
             </button>
-            <button onclick="document.getElementById('verify-modal').remove()" class="w-full text-slate-500 text-xs font-bold uppercase py-2 bg-none border-none cursor-pointer">Cancel</button>
+            <button onclick="document.getElementById('verify-modal').remove()"
+                style="width:100%;background:transparent;color:#64748b;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;font-size:10px;font-weight:900;text-transform:uppercase;cursor:pointer;">
+                Cancel
+            </button>
         </div>
     </div>`);
-    document.getElementById('verify-inp').focus();
+    document.getElementById('verify-code-input').focus();
 }
 
 async function verifyAndComplete(bookingId) {
-    const code = document.getElementById('verify-inp').value.trim();
+    const inputCode = document.getElementById('verify-code-input').value.trim();
     const errEl = document.getElementById('verify-err');
-    errEl.classList.add('hidden');
-    if (!code || code.length !== 5) { errEl.textContent = '❌ 5-digit code daalo!'; errEl.classList.remove('hidden'); return; }
-    const { data: bk } = await sb.from('bookings').select('booking_code,status').eq('id', bookingId).single();
-    if (!bk) { errEl.textContent = '❌ Booking nahi mili!'; errEl.classList.remove('hidden'); return; }
-    if (bk.status === 'completed') { errEl.textContent = '⚠️ Already complete!'; errEl.classList.remove('hidden'); return; }
-    if (String(bk.booking_code) !== String(code)) { errEl.textContent = '❌ Galat code!'; errEl.classList.remove('hidden'); return; }
-    await sb.from('bookings').update({ status: 'completed' }).eq('id', bookingId);
+    errEl.style.display = 'none';
+
+    if (!inputCode || inputCode.length !== 5) {
+        errEl.style.display = 'block';
+        errEl.textContent = '❌ 5-digit code daalo!';
+        return;
+    }
+
+    // Fetch booking from DB and check code
+    const { data: booking, error } = await supabaseClient
+        .from('bookings').select('booking_code, status').eq('id', bookingId).single();
+
+    if (error || !booking) {
+        errEl.style.display = 'block';
+        errEl.textContent = '❌ Booking nahi mili!';
+        return;
+    }
+    if (booking.status === 'completed') {
+        errEl.style.display = 'block';
+        errEl.textContent = '⚠️ Yeh booking pehle se complete hai!';
+        return;
+    }
+    if (String(booking.booking_code) !== String(inputCode)) {
+        errEl.style.display = 'block';
+        errEl.textContent = '❌ Galat code! Customer se dobara check karo.';
+        return;
+    }
+
+    // Code matched — mark complete
+    await supabaseClient.from('bookings').update({ status: 'completed' }).eq('id', bookingId);
     document.getElementById('verify-modal').remove();
-    toast('✅ Service complete! Booking closed.');
+
+    // Show success toast
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:14px 24px;border-radius:14px;font-size:13px;font-weight:900;background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);backdrop-filter:blur(10px);white-space:nowrap;';
+    t.textContent = '✅ Service Complete! Booking closed.';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+
+    renderBookings();
+}
+
+async function updateBookingStatus(id, status) {
+    await supabaseClient.from('bookings').update({ status }).eq('id', id);
+    renderBookings();
+}
+
+async function cancelConfirmedBooking(id, date, time) {
+    const bookingDT = new Date(`${date}T${time}`);
+    const diffHrs = (bookingDT - new Date()) / 36e5;
+    if (diffHrs <= 2) {
+        alert("❌ 2 ghante se kam time raha hai — ab cancel nahi ho sakta!\nPolicy: Sirf 2+ ghante pehle cancel allowed hai.");
+        return;
+    }
+    if (!confirm("Yeh confirmed booking cancel karein?")) return;
+    await supabaseClient.from('bookings').update({ status: 'cancelled' }).eq('id', id);
     renderBookings();
 }
 
 async function setAutoAccept(val) {
-    await sb.from('salons').update({ auto_accept: val }).eq('id', currentSalon.id);
+    await supabaseClient.from('salons').update({ auto_accept: val }).eq('id', currentSalon.id);
     currentSalon.auto_accept = val;
-    localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 // SLOTS TAB
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 async function renderSlots() {
     const cv = document.getElementById('content-view');
-    const { data: fresh } = await sb.from('salons').select('*').eq('id', currentSalon.id).single();
-    if (fresh) { currentSalon = fresh; localStorage.setItem('salonOwner', JSON.stringify(currentSalon)); }
+    const { data: fresh } = await supabaseClient.from('salons').select('*').eq('id', currentSalon.id).single();
+    if (fresh) currentSalon = fresh;
 
-    const workDays = currentSalon.working_days || ['Mon','Tue','Wed','Thu','Fri','Sat'];
-    const openTime = currentSalon.open_time || '09:00';
-    const closeTime = currentSalon.close_time || '20:00';
-    const dur = currentSalon.slot_duration || 30;
+    const workDays   = currentSalon.work_days   || ['Mon','Tue','Wed','Thu','Fri','Sat'];
+    const openTime   = currentSalon.open_time    || '09:00';
+    const closeTime  = currentSalon.close_time   || '20:00';
+    const slotMins   = currentSalon.slot_duration || 30;
+    const blockedRaw = currentSalon.blocked_slots || [];
+    const blocked    = Array.isArray(blockedRaw) ? blockedRaw : [];
+
     const allDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const slots = genTimeSlots(openTime, closeTime, dur);
-
-    // Get today's booked slots
-    const today = new Date().toISOString().split('T')[0];
-    const { data: bookedSlots } = await sb.from('bookings').select('slot_time').eq('salon_id', currentSalon.id).eq('booking_date', today).not('status','in','("cancelled","rejected")');
-    const bookedSet = new Set((bookedSlots||[]).map(b => {
-        if (!b.slot_time) return '';
-        return b.slot_time.split('T')[1]?.substring(0,5) || '';
-    }));
+    const slots = generateTimeSlots(openTime, closeTime, slotMins);
 
     cv.innerHTML = `
     <h2 class="text-2xl font-black uppercase italic mb-5">Slot <span class="text-blue-500">Manager</span></h2>
 
     <!-- Working Days -->
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;">
+    <div class="glass-card p-5 mb-4">
         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Working Days</p>
-        <div class="flex flex-wrap gap-2">
-            ${allDays.map(d => `<button onclick="toggleDay('${d}')" id="day-${d}" class="day-pill ${workDays.includes(d)?'on':''}">${d}</button>`).join('')}
+        <div class="flex flex-wrap gap-2" id="day-pills">
+            ${allDays.map(d => `
+            <button onclick="toggleDay('${d}')" id="day-${d}"
+                class="day-pill ${workDays.includes(d) ? 'on' : ''}">${d}</button>`).join('')}
         </div>
     </div>
 
     <!-- Working Hours -->
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;">
+    <div class="glass-card p-5 mb-4">
         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Working Hours</p>
         <div class="flex gap-3 items-center">
             <div class="flex-1">
@@ -501,95 +750,104 @@ async function renderSlots() {
             </div>
         </div>
         <div class="flex items-center gap-3 mt-3">
-            <p class="text-[9px] text-slate-400 font-black uppercase flex-shrink-0">Slot Duration</p>
+            <p class="text-[9px] text-slate-400 font-black uppercase">Slot Duration</p>
             <select id="slot-dur" class="flex-1 p-2 rounded-xl text-xs font-black">
-                ${[15,30,45,60].map(m => `<option value="${m}" ${dur==m?'selected':''}>${m} min</option>`).join('')}
+                ${[15,30,45,60].map(m => `<option value="${m}" ${slotMins==m?'selected':''}>${m} min</option>`).join('')}
             </select>
         </div>
-        <button onclick="saveWorkingHours()" class="w-full mt-4 g-blue text-white py-3 rounded-xl font-black text-[10px] uppercase">
+        <button onclick="saveWorkingHours()" class="w-full mt-4 gradient-blue py-3 rounded-xl font-black text-[10px] uppercase">
             <i class="fa-solid fa-save mr-2"></i>Save Hours
         </button>
     </div>
 
-    <!-- Today Slots Grid -->
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;">
+    <!-- Slot Grid - Block/Unblock -->
+    <div class="glass-card p-5 mb-4">
         <div class="flex justify-between items-center mb-3">
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Today's Slots — Block/Unblock</p>
+            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Today's Slots</p>
             <div class="flex gap-3 text-[8px]">
                 <span class="text-emerald-400 font-black">● Free</span>
                 <span class="text-red-400 font-black">● Blocked</span>
-                <span class="text-blue-400 font-black">● Booked</span>
             </div>
         </div>
         <div class="grid grid-cols-4 gap-2">
             ${slots.map(t => {
-                const isBooked = bookedSet.has(t);
-                const blocked = Array.isArray(currentSalon.blocked_slots) ? currentSalon.blocked_slots : [];
                 const isBlocked = blocked.includes(t);
-                const cls = isBooked ? 'slot-booked' : isBlocked ? 'slot-blocked' : 'slot-free';
-                return `<div onclick="${isBooked ? '' : `toggleSlotBlock('${t}')`}" class="slot-cell ${cls}" id="slot-${t.replace(':','-')}">${t}${isBooked?'<br><span style="font-size:7px">Booked</span>':''}</div>`;
+                return `<div onclick="toggleSlotBlock('${t}')"
+                    class="slot-cell ${isBlocked ? 'slot-blocked' : 'slot-free'}" id="slot-${t.replace(':','-')}">
+                    ${t}
+                </div>`;
             }).join('')}
         </div>
         ${slots.length === 0 ? '<p class="text-[10px] text-slate-600 text-center py-4">Working hours set karein pehle</p>' : ''}
-    </div>`;
+    </div>
+
+    <!-- Legend -->
+    <p class="text-[9px] text-slate-600 text-center">Slot par tap karein — block/unblock toggle hoga</p>`;
 }
 
-function genTimeSlots(open, close, dur) {
+function generateTimeSlots(open, close, duration) {
     const slots = [];
     let [h, m] = open.split(':').map(Number);
     const [ch, cm] = close.split(':').map(Number);
-    const end = ch * 60 + cm;
-    while (h * 60 + m < end) {
+    const endMins = ch * 60 + cm;
+    while (h * 60 + m < endMins) {
         slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-        m += dur; if (m >= 60) { h += Math.floor(m/60); m = m % 60; }
+        m += duration;
+        if (m >= 60) { h += Math.floor(m/60); m = m % 60; }
     }
     return slots;
 }
 
-function toggleDay(d) {
-    let days = currentSalon.working_days || ['Mon','Tue','Wed','Thu','Fri','Sat'];
-    if (days.includes(d)) days = days.filter(x => x !== d); else days.push(d);
-    currentSalon.working_days = days;
-    document.getElementById('day-' + d)?.classList.toggle('on', days.includes(d));
-    sb.from('salons').update({ working_days: days }).eq('id', currentSalon.id);
-    localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
+function toggleDay(day) {
+    let days = currentSalon.work_days || ['Mon','Tue','Wed','Thu','Fri','Sat'];
+    if (days.includes(day)) days = days.filter(d => d !== day);
+    else days.push(day);
+    currentSalon.work_days = days;
+    const pill = document.getElementById(`day-${day}`);
+    pill.classList.toggle('on', days.includes(day));
+    supabaseClient.from('salons').update({ work_days: days }).eq('id', currentSalon.id);
 }
 
 async function saveWorkingHours() {
-    const open = document.getElementById('slot-open').value;
+    const open  = document.getElementById('slot-open').value;
     const close = document.getElementById('slot-close').value;
-    const dur = parseInt(document.getElementById('slot-dur').value);
-    await sb.from('salons').update({ open_time: open, close_time: close, slot_duration: dur }).eq('id', currentSalon.id);
+    const dur   = parseInt(document.getElementById('slot-dur').value);
+    await supabaseClient.from('salons').update({ open_time: open, close_time: close, slot_duration: dur }).eq('id', currentSalon.id);
     currentSalon.open_time = open; currentSalon.close_time = close; currentSalon.slot_duration = dur;
-    localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
-    toast('✅ Working hours saved!');
+    alert("✅ Working hours saved!");
     renderSlots();
 }
 
 async function toggleSlotBlock(time) {
     let blocked = Array.isArray(currentSalon.blocked_slots) ? [...currentSalon.blocked_slots] : [];
-    if (blocked.includes(time)) blocked = blocked.filter(t => t !== time); else blocked.push(time);
+    if (blocked.includes(time)) blocked = blocked.filter(t => t !== time);
+    else blocked.push(time);
     currentSalon.blocked_slots = blocked;
-    await sb.from('salons').update({ blocked_slots: blocked }).eq('id', currentSalon.id);
-    localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
-    const el = document.getElementById('slot-' + time.replace(':','-'));
-    if (el) el.className = `slot-cell ${blocked.includes(time) ? 'slot-blocked' : 'slot-free'}`;
+    await supabaseClient.from('salons').update({ blocked_slots: blocked }).eq('id', currentSalon.id);
+    const key = time.replace(':','-');
+    const el  = document.getElementById(`slot-${key}`);
+    if (el) {
+        el.className = `slot-cell ${blocked.includes(time) ? 'slot-blocked' : 'slot-free'}`;
+    }
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 // SERVICES TAB
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 async function renderServices() {
     const cv = document.getElementById('content-view');
-    const { data } = await sb.from('services').select('*').eq('salon_id', currentSalon.id).eq('is_active', true);
-    window._svcList = data || [];
+    const { data } = await supabaseClient.from('salons').select('services').eq('id', currentSalon.id).single();
+    let services = [];
+    try { services = JSON.parse(data?.services || '[]'); } catch(e) { services = data?.services || []; }
+    currentSalon.services = services;
 
     cv.innerHTML = `
     <h2 class="text-2xl font-black uppercase italic mb-5">Services <span class="text-blue-500">Menu</span></h2>
     <div id="svc-list" class="space-y-3 mb-4">
-        ${window._svcList.map((s, i) => renderSvcCard(s, i)).join('') || '<p class="text-slate-500 text-center py-8 text-xs uppercase tracking-widest">Koi service nahi</p>'}
+        ${services.map((s,i) => renderSvcCard(s,i)).join('') || '<p class="text-slate-500 text-center py-8 text-xs">Koi service nahi — neeche add karein</p>'}
     </div>
-    <button onclick="openSvcModal(-1, {})" class="w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-wider" style="border:2px dashed rgba(255,255,255,0.1);color:#64748b;background:transparent;cursor:pointer;">
+    <button onclick="openAddService()"
+        class="w-full py-4 rounded-2xl font-black text-[10px] uppercase border-2 border-dashed border-white/10 text-slate-400 hover:border-blue-500 hover:text-blue-400 transition-all">
         <i class="fa-solid fa-plus mr-2"></i>Add New Service
     </button>`;
 }
@@ -597,259 +855,307 @@ async function renderServices() {
 function renderSvcCard(s, i) {
     return `
     <div class="booking-card flex items-center gap-3">
-        ${s.image_url ? `<img src="${s.image_url}" class="w-12 h-12 rounded-xl object-cover flex-shrink-0">` :
-            `<div class="w-12 h-12 g-violet rounded-xl flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-scissors text-white text-sm"></i></div>`}
+        ${s.photo ? `<img src="${s.photo}" class="w-12 h-12 rounded-xl object-cover flex-shrink-0">` :
+            `<div class="w-12 h-12 rounded-xl gradient-violet flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid fa-scissors text-white text-sm"></i>
+            </div>`}
         <div class="flex-1">
-            <p class="font-black text-sm text-white">${s.name || 'Service'}</p>
-            <p class="text-[10px] text-slate-400">₹${s.price} • ${s.duration || 30} min</p>
+            <p class="font-black text-sm text-white">${s.name || s.service || 'Service'}</p>
+            <p class="text-[10px] text-slate-400">₹${s.price} • ${s.slotTime || s.duration || 30} min</p>
+            ${s.description ? `<p class="text-[9px] text-slate-500 mt-0.5">${s.description}</p>` : ''}
         </div>
         <div class="flex gap-2 flex-shrink-0">
-            <button onclick="openSvcModal(${i}, window._svcList[${i}])" class="w-8 h-8 rounded-xl flex items-center justify-center text-blue-400" style="background:rgba(59,130,246,0.12)"><i class="fa-solid fa-pen text-xs"></i></button>
-            <button onclick="deleteSvc('${s.id}')" class="w-8 h-8 rounded-xl flex items-center justify-center text-red-400" style="background:rgba(239,68,68,0.12)"><i class="fa-solid fa-trash text-xs"></i></button>
+            <button onclick="openEditService(${i})"
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-blue-400" style="background:rgba(59,130,246,0.12)">
+                <i class="fa-solid fa-pen text-xs"></i>
+            </button>
+            <button onclick="deleteService(${i})"
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-red-400" style="background:rgba(239,68,68,0.12)">
+                <i class="fa-solid fa-trash text-xs"></i>
+            </button>
         </div>
     </div>`;
 }
 
-function openSvcModal(idx, svc) {
+function openAddService() { openServiceModal(-1, {}); }
+function openEditService(i) { openServiceModal(i, currentSalon.services[i]); }
+
+function openServiceModal(idx, svc) {
     const isEdit = idx >= 0;
-    const existing = document.getElementById('svc-modal');
-    if (existing) existing.remove();
     document.body.insertAdjacentHTML('beforeend', `
-    <div class="modal-bg" id="svc-modal" onclick="if(event.target.classList.contains('modal-bg'))this.remove()">
+    <div class="modal-bg" id="svc-modal" onclick="closeModal('svc-modal', event)">
         <div class="modal-box">
             <div class="flex justify-between items-center mb-5">
-                <p class="font-black uppercase italic text-sm text-blue-400"><i class="fa-solid fa-scissors mr-2"></i>${isEdit?'Edit':'Add'} Service</p>
+                <p class="font-black uppercase italic text-sm text-blue-400">
+                    <i class="fa-solid fa-scissors mr-2"></i>${isEdit ? 'Edit' : 'Add'} Service
+                </p>
                 <button onclick="document.getElementById('svc-modal').remove()" class="text-slate-500 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-3">
-                <input type="text" id="sm-name" value="${svc.name||''}" placeholder="Service Name" class="w-full p-4 rounded-xl text-sm font-bold">
+                <input type="text" id="svc-name" value="${svc.name || svc.service || ''}" placeholder="Service Name" class="w-full p-4 rounded-xl text-sm font-bold">
                 <div class="flex gap-3">
-                    <input type="number" id="sm-price" value="${svc.price||''}" placeholder="Price ₹" class="flex-1 p-4 rounded-xl text-sm font-bold">
-                    <select id="sm-dur" class="flex-1 p-4 rounded-xl text-sm font-bold">
-                        ${[15,30,45,60,90,120].map(m => `<option value="${m}" ${(svc.duration||30)==m?'selected':''}>${m} min</option>`).join('')}
+                    <div class="flex-1 relative">
+                        <span class="absolute left-3 top-4 text-slate-400 font-bold">₹</span>
+                        <input type="number" id="svc-price" value="${svc.price || ''}" placeholder="Price" class="w-full pl-7 p-4 rounded-xl text-sm font-bold">
+                    </div>
+                    <select id="svc-dur" class="flex-1 p-4 rounded-xl text-sm font-bold">
+                        ${[15,30,45,60,90,120].map(m => `<option value="${m}" ${(svc.slotTime||svc.duration||30)==m?'selected':''}>${m} min</option>`).join('')}
                     </select>
                 </div>
-                <input type="text" id="sm-img" value="${svc.image_url||''}" placeholder="Image URL (optional)" class="w-full p-4 rounded-xl text-sm font-bold">
-                <button onclick="saveSvc('${svc.id||''}',${isEdit})" class="w-full g-blue text-white py-4 rounded-2xl font-black text-[10px] uppercase">
-                    <i class="fa-solid fa-save mr-2"></i>${isEdit?'Update':'Add'} Service
+                <textarea id="svc-desc" placeholder="Description (optional)" class="w-full p-4 rounded-xl text-sm font-bold" rows="2">${svc.description || ''}</textarea>
+                <div class="flex gap-3">
+                    <div class="flex-1 relative">
+                        <span class="absolute left-3 top-4 text-slate-400 font-bold">%</span>
+                        <input type="number" id="svc-tax" value="${svc.tax || ''}" placeholder="Tax %" class="w-full pl-8 p-4 rounded-xl text-sm font-bold">
+                    </div>
+                    <div class="flex-1 relative">
+                        <span class="absolute left-3 top-4 text-slate-400 font-bold">₹</span>
+                        <input type="number" id="svc-extra" value="${svc.extra_charge || ''}" placeholder="Extra Charge" class="w-full pl-7 p-4 rounded-xl text-sm font-bold">
+                    </div>
+                </div>
+                <button onclick="saveService(${idx})" class="w-full py-4 rounded-xl font-black text-[10px] uppercase gradient-blue">
+                    <i class="fa-solid fa-save mr-2"></i>${isEdit ? 'Update' : 'Add'} Service
                 </button>
             </div>
         </div>
     </div>`);
 }
 
-async function saveSvc(existingId, isEdit) {
-    const name = document.getElementById('sm-name').value.trim();
-    const price = parseFloat(document.getElementById('sm-price').value);
-    const dur = parseInt(document.getElementById('sm-dur').value);
-    const img = document.getElementById('sm-img').value.trim();
-    if (!name || isNaN(price)) return toast('Name aur price required hai', 'red');
-    if (isEdit && existingId) {
-        await sb.from('services').update({ name, price, duration: dur, image_url: img || null }).eq('id', existingId);
-    } else {
-        await sb.from('services').insert([{ salon_id: currentSalon.id, name, price, duration: dur, image_url: img || null, is_active: true }]);
-    }
-    document.getElementById('svc-modal').remove();
-    toast(isEdit ? '✅ Service updated!' : '✅ Service added!');
+async function saveService(idx) {
+    const name  = document.getElementById('svc-name').value.trim();
+    const price = parseFloat(document.getElementById('svc-price').value) || 0;
+    const dur   = parseInt(document.getElementById('svc-dur').value);
+    const desc  = document.getElementById('svc-desc').value.trim();
+    const tax   = parseFloat(document.getElementById('svc-tax').value) || 0;
+    const extra = parseFloat(document.getElementById('svc-extra').value) || 0;
+    if (!name) return alert("Service name daalna zaroori hai!");
+
+    let services = [...(currentSalon.services || [])];
+    const entry = { name, service: name, price, slotTime: dur, duration: dur, description: desc, tax, extra_charge: extra };
+    if (idx >= 0) services[idx] = { ...services[idx], ...entry };
+    else services.push(entry);
+
+    await supabaseClient.from('salons').update({ services: JSON.stringify(services) }).eq('id', currentSalon.id);
+    currentSalon.services = services;
+    document.getElementById('svc-modal')?.remove();
     renderServices();
 }
 
-async function deleteSvc(id) {
-    if (!confirm('Service delete karein?')) return;
-    await sb.from('services').update({ is_active: false }).eq('id', id);
-    toast('Service deleted', 'amber');
+async function deleteService(i) {
+    if (!confirm("Yeh service delete karein?")) return;
+    let services = [...(currentSalon.services || [])];
+    services.splice(i, 1);
+    await supabaseClient.from('salons').update({ services: JSON.stringify(services) }).eq('id', currentSalon.id);
+    currentSalon.services = services;
     renderServices();
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 // EARNINGS TAB
-// ═══════════════════════════════════════════════
-let _appSettings = null;
-
-async function renderEarnings() {
+// ══════════════════════════════════════
+async function renderEarnings(period = 'today') {
     const cv = document.getElementById('content-view');
-    cv.innerHTML = `<div class="flex justify-center py-10"><div class="spinner-sm"></div></div>`;
+    cv.innerHTML = `<div class="flex justify-center py-10"><i class="fa-solid fa-spinner fa-spin text-blue-400 text-2xl"></i></div>`;
 
-    if (!_appSettings) {
-        const { data } = await sb.from('app_settings').select('*').eq('id', 1).single();
-        _appSettings = data;
+    const now   = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    let fromDate = today;
+    if (period === 'week') {
+        const d = new Date(now); d.setDate(d.getDate() - 7);
+        fromDate = d.toISOString().split('T')[0];
+    } else if (period === 'month') {
+        fromDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
     }
-    const commission = _appSettings?.commission_fee || currentSalon.booking_fee || 5;
 
-    const { data: bookings } = await sb.from('bookings').select('*').eq('salon_id', currentSalon.id).in('status',['confirmed','completed']);
+    const { data: bookings } = await supabaseClient
+        .from('bookings')
+        .select('*')
+        .eq('salon_id', currentSalon.id)
+        .eq('status', 'confirmed')
+        .gte('booking_date', fromDate);
 
-    const total = (bookings || []).reduce((s, b) => s + (b.total_amount || 0), 0);
-    const totalCommission = (bookings || []).length * commission;
-    const net = total - totalCommission;
-
-    // Monthly breakdown
-    const monthly = {};
-    (bookings || []).forEach(b => {
-        const month = (b.booking_date || '').substring(0, 7);
-        if (!month) return;
-        if (!monthly[month]) monthly[month] = { bookings: 0, gross: 0 };
-        monthly[month].bookings++;
-        monthly[month].gross += (b.total_amount || 0);
-    });
+    const total      = (bookings || []).reduce((s, b) => s + (b.price || 0), 0);
+    const commission = (bookings || []).length * 5; // ₹5 per booking
+    const net        = total - commission;
 
     cv.innerHTML = `
-    <h2 class="text-2xl font-black uppercase italic mb-5">Earnings <span class="text-blue-500">Report</span></h2>
+    <h2 class="text-2xl font-black uppercase italic mb-5">Earnings <span class="text-emerald-400">Report</span></h2>
 
+    <!-- Period Filter -->
+    <div class="flex gap-2 mb-5">
+        ${['today','week','month'].map(p => `
+        <button onclick="renderEarnings('${p}')"
+            class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase ${period===p ? 'gradient-blue' : 'glass-card text-slate-400'}">
+            ${p === 'today' ? 'Today' : p === 'week' ? '7 Days' : 'Month'}
+        </button>`).join('')}
+    </div>
+
+    <!-- Summary Cards -->
     <div class="grid grid-cols-2 gap-3 mb-5">
-        <div class="glass p-4 text-center" style="border-top:2px solid #10b981;border-radius:1.2rem;">
-            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Gross Revenue</p>
-            <h2 class="text-2xl font-black text-white">₹${total}</h2>
+        <div class="glass-card p-5 border-t-2 border-emerald-500">
+            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Gross Earnings</p>
+            <h2 class="text-2xl font-black italic text-emerald-400">₹${total}</h2>
         </div>
-        <div class="glass p-4 text-center" style="border-top:2px solid #3b82f6;border-radius:1.2rem;">
-            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Net Earning</p>
-            <h2 class="text-2xl font-black text-emerald-400">₹${net}</h2>
+        <div class="glass-card p-5 border-t-2 border-blue-500">
+            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Net Earnings</p>
+            <h2 class="text-2xl font-black italic text-blue-400">₹${net}</h2>
         </div>
-        <div class="glass p-4 text-center" style="border-top:2px solid #ef4444;border-radius:1.2rem;">
-            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Platform Fee</p>
-            <h2 class="text-2xl font-black text-red-400">₹${totalCommission}</h2>
-            <p class="text-[8px] text-slate-500">₹${commission}/booking</p>
-        </div>
-        <div class="glass p-4 text-center" style="border-top:2px solid #f59e0b;border-radius:1.2rem;">
+        <div class="glass-card p-5 border-t-2 border-amber-500">
             <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Bookings</p>
-            <h2 class="text-2xl font-black text-amber-400">${(bookings||[]).length}</h2>
+            <h2 class="text-2xl font-black italic text-amber-400">${(bookings||[]).length}</h2>
+        </div>
+        <div class="glass-card p-5 border-t-2 border-red-500">
+            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Commission (₹5 each)</p>
+            <h2 class="text-2xl font-black italic text-red-400">-₹${commission}</h2>
         </div>
     </div>
 
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;">
-        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Monthly Breakdown</p>
-        ${Object.keys(monthly).sort().reverse().map(m => `
-        <div class="flex justify-between items-center py-3" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+    <!-- Commission Info -->
+    <div class="glass-card p-4 flex items-start gap-3 mb-5">
+        <i class="fa-solid fa-circle-info text-blue-400 mt-0.5 flex-shrink-0"></i>
+        <p class="text-[9px] text-slate-400 leading-relaxed">
+            Har confirmed booking par <b class="text-white">₹5 platform commission</b> liya jata hai. Net earning = Gross - Commission.
+        </p>
+    </div>
+
+    <!-- Booking Breakdown -->
+    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Confirmed Bookings</p>
+    <div class="space-y-2">
+        ${(bookings||[]).slice(0,20).map(b => `
+        <div class="flex justify-between items-center p-3 rounded-xl" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05)">
             <div>
-                <p class="text-sm font-black text-white">${m}</p>
-                <p class="text-[9px] text-slate-500">${monthly[m].bookings} bookings</p>
+                <p class="text-xs font-black text-white">${b.customer_name || 'Customer'}</p>
+                <p class="text-[9px] text-slate-500">${b.service_name || ''} • ${b.booking_date || ''}</p>
             </div>
             <div class="text-right">
-                <p class="text-sm font-black text-emerald-400">₹${monthly[m].gross - (monthly[m].bookings * commission)}</p>
-                <p class="text-[8px] text-slate-500">net</p>
+                <p class="font-black text-emerald-400 text-sm">₹${b.price || 0}</p>
+                <p class="text-[9px] text-slate-600">-₹5 comm</p>
             </div>
-        </div>`).join('') || '<p class="text-center text-slate-600 text-xs py-4 uppercase">Koi data nahi</p>'}
+        </div>`).join('') || '<p class="text-slate-600 text-xs text-center py-4">Is period mein koi booking nahi</p>'}
     </div>`;
 }
 
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 // SETTINGS TAB
-// ═══════════════════════════════════════════════
+// ══════════════════════════════════════
 async function renderSettings() {
+    const { data } = await supabaseClient.from('salons').select('*').eq('id', currentSalon.id).single();
+    if (data) currentSalon = data;
+
     const cv = document.getElementById('content-view');
     cv.innerHTML = `
-    <h2 class="text-2xl font-black uppercase italic mb-5">Settings <span class="text-blue-500">&amp; Profile</span></h2>
+    <h2 class="text-2xl font-black uppercase italic mb-5">Settings <span class="text-blue-500">Panel</span></h2>
 
-    <!-- Profile -->
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;">
-        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Salon Profile</p>
+    <!-- Profile Update -->
+    <div class="glass-card p-5 mb-4">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">
+            <i class="fa-solid fa-shop mr-2"></i>Salon Profile
+        </p>
         <div class="space-y-3">
-            <input type="text" id="set-name" value="${currentSalon.name||''}" placeholder="Salon Name">
-            <input type="text" id="set-owner" value="${currentSalon.owner_name||''}" placeholder="Owner Name">
-            <input type="tel" id="set-phone" value="${currentSalon.phone||''}" placeholder="Phone">
-            <textarea id="set-addr" placeholder="Address" rows="2">${currentSalon.address||''}</textarea>
-            <button onclick="saveProfile()" class="w-full g-blue text-white py-4 rounded-xl font-black text-[10px] uppercase">
+            <input type="text" id="set-name" value="${currentSalon.name || ''}" placeholder="Salon Name" class="w-full p-4 rounded-xl text-sm font-bold">
+            <input type="text" id="set-owner" value="${currentSalon.owner_name || ''}" placeholder="Owner Name" class="w-full p-4 rounded-xl text-sm font-bold">
+            <input type="tel"  id="set-phone" value="${currentSalon.phone || ''}" placeholder="Phone" class="w-full p-4 rounded-xl text-sm font-bold">
+            <textarea id="set-addr" placeholder="Salon Address" class="w-full p-4 rounded-xl text-sm font-bold" rows="2">${currentSalon.address || ''}</textarea>
+            <button onclick="saveProfile()" class="w-full gradient-blue py-4 rounded-xl font-black text-[10px] uppercase">
                 <i class="fa-solid fa-save mr-2"></i>Save Profile
             </button>
         </div>
     </div>
 
-    <!-- Map Location -->
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;border:1px solid rgba(59,130,246,0.2);">
-        <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-4"><i class="fa-solid fa-map-location-dot mr-2"></i>Salon Location (GPS)</p>
-        <div class="grid grid-cols-2 gap-3 mb-3">
-            <div>
-                <p class="text-[8px] text-slate-500 mb-1">Latitude</p>
-                <input type="number" id="set-lat" value="${currentSalon.latitude||''}" placeholder="e.g. 28.6139" step="0.0001">
-            </div>
-            <div>
-                <p class="text-[8px] text-slate-500 mb-1">Longitude</p>
-                <input type="number" id="set-lon" value="${currentSalon.longitude||''}" placeholder="e.g. 77.2090" step="0.0001">
-            </div>
+    <!-- Cancellation Policy Info -->
+    <div class="glass-card p-5 mb-4" style="border: 1px solid rgba(239,68,68,0.2)">
+        <p class="text-[9px] font-black text-red-400 uppercase tracking-widest mb-3">
+            <i class="fa-solid fa-ban mr-2"></i>Cancellation Policy
+        </p>
+        <p class="text-[10px] text-slate-400 leading-relaxed">
+            Salon owner booking <b class="text-white">sirf 2 ghante pehle</b> cancel kar sakta hai.<br>
+            Booking time se 2 ghante ke andar cancel <b class="text-red-400">allowed nahi</b> hai.
+        </p>
+    </div>
+
+    <!-- Reviews -->
+    <div class="glass-card p-5 mb-4">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            <i class="fa-solid fa-star mr-2"></i>Customer Reviews
+        </p>
+        <div id="reviews-list">
+            <div class="flex justify-center py-4"><i class="fa-solid fa-spinner fa-spin text-slate-400"></i></div>
         </div>
-        <button onclick="getMyLocation()" class="w-full mb-3 py-3 rounded-xl font-black text-[10px] uppercase" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);">
-            <i class="fa-solid fa-location-crosshairs mr-2"></i>Use My Current Location
-        </button>
-        ${currentSalon.latitude && currentSalon.longitude ? `
-        <a href="https://www.google.com/maps?q=${currentSalon.latitude},${currentSalon.longitude}" target="_blank"
-            class="block text-center py-2 text-[10px] text-emerald-400 font-black uppercase">📍 Current Location Preview</a>` : ''}
-        <button onclick="saveLocation()" class="w-full g-green text-white py-4 rounded-xl font-black text-[10px] uppercase">
-            <i class="fa-solid fa-save mr-2"></i>Save Location
+    </div>
+
+    <!-- Offers & Discounts -->
+    <div class="glass-card p-5 mb-4">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">
+            <i class="fa-solid fa-tag mr-2"></i>Active Offer
+        </p>
+        <input type="text" id="set-offer" value="${currentSalon.offer_text || ''}" placeholder="e.g. 20% off on Facial this weekend!" class="w-full p-4 rounded-xl text-sm font-bold mb-3">
+        <button onclick="saveOffer()" class="w-full py-4 rounded-xl font-black text-[10px] uppercase" style="background:linear-gradient(135deg,#f59e0b,#b45309)">
+            <i class="fa-solid fa-tag mr-2"></i>Save Offer
         </button>
     </div>
 
-    <!-- City/State/Pincode -->
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;">
-        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Location Details</p>
+    <!-- Payment Settings -->
+    <div class="glass-card p-5 mb-4">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">
+            <i class="fa-solid fa-wallet mr-2"></i>Payment Settings
+        </p>
+        <input type="text" id="set-upi" value="${currentSalon.upi_id || ''}" placeholder="UPI ID" class="w-full p-4 rounded-xl text-sm font-bold mb-3">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-black text-white">Accept Cash</p>
+            <label class="toggle-wrap">
+                <input type="checkbox" id="set-cash" ${currentSalon.accept_cash ? 'checked' : ''} onchange="saveCashOption(this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <button onclick="savePaymentSettings()" class="w-full gradient-emerald py-4 rounded-xl font-black text-[10px] uppercase text-white">
+            <i class="fa-solid fa-save mr-2"></i>Save Payment Settings
+        </button>
+    </div>
+
+    <!-- Password Update -->
+    <div class="glass-card p-5 mb-4">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">
+            <i class="fa-solid fa-shield-halved mr-2"></i>Update Password
+        </p>
         <div class="space-y-3">
-            <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="set-city" value="${currentSalon.city||''}" placeholder="City">
-                <input type="text" id="set-state" value="${currentSalon.state||''}" placeholder="State">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <input type="text" id="set-area" value="${currentSalon.area||''}" placeholder="Area">
-                <input type="text" id="set-pin" value="${currentSalon.pincode||''}" placeholder="Pincode">
-            </div>
-            <button onclick="saveLocationDetails()" class="w-full g-violet text-white py-4 rounded-xl font-black text-[10px] uppercase">
-                <i class="fa-solid fa-save mr-2"></i>Save Details
+            <input type="password" id="old-p" placeholder="Old Password" class="w-full p-4 rounded-xl text-sm font-bold" maxlength="6">
+            <input type="password" id="new-p" placeholder="New 6-Digit Password" class="w-full p-4 rounded-xl text-sm font-bold" maxlength="6">
+            <button onclick="updatePassword()" class="w-full gradient-blue py-4 rounded-xl font-black text-[10px] uppercase">
+                <i class="fa-solid fa-key mr-2"></i>Update Password
             </button>
         </div>
-    </div>
+    </div>`;
 
-    <!-- Cancellation Policy -->
-    <div class="glass p-4 mb-4" style="border-radius:1.2rem;border:1px solid rgba(239,68,68,0.2);">
-        <p class="text-[9px] font-black text-red-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-ban mr-2"></i>Cancellation Policy</p>
-        <p class="text-[10px] text-slate-400 leading-relaxed">Booking sirf <b class="text-white">2 ghante pehle</b> cancel ho sakti hai. Uske baad cancel allowed nahi.</p>
-    </div>
+    loadReviews();
+}
 
-    <!-- Password -->
-    <div class="glass p-5 mb-4" style="border-radius:1.5rem;">
-        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4"><i class="fa-solid fa-shield-halved mr-2"></i>Update Password</p>
-        <div class="space-y-3">
-            <input type="password" id="old-p" placeholder="Old Password">
-            <input type="password" id="new-p" placeholder="New Password">
-            <button onclick="updatePassword()" class="w-full g-blue text-white py-4 rounded-xl font-black text-[10px] uppercase">
-                <i class="fa-solid fa-key mr-2"></i>Update
-            </button>
+async function loadReviews() {
+    const { data } = await supabaseClient
+        .from('reviews').select('*').eq('salon_id', currentSalon.id).order('created_at', { ascending: false }).limit(10);
+    const el = document.getElementById('reviews-list');
+    if (!el) return;
+    if (!data || !data.length) {
+        el.innerHTML = '<p class="text-[10px] text-slate-600 text-center py-2">Koi review nahi abhi tak</p>';
+        return;
+    }
+    const avg = (data.reduce((s,r) => s + (r.rating || 0), 0) / data.length).toFixed(1);
+    el.innerHTML = `
+    <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl font-black text-amber-400">${avg}</span>
+        <div>
+            <div class="flex gap-0.5">${[1,2,3,4,5].map(n => `<i class="fa-solid fa-star text-sm ${n <= Math.round(avg) ? 'text-amber-400' : 'text-slate-700'}"></i>`).join('')}</div>
+            <p class="text-[9px] text-slate-500">${data.length} reviews</p>
         </div>
     </div>
-
-    <!-- Logout -->
-    <button onclick="logout()" class="w-full py-4 rounded-2xl font-black text-sm" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">
-        <i class="fa-solid fa-power-off mr-2"></i>Logout
-    </button>`;
-}
-
-async function getMyLocation() {
-    if (!navigator.geolocation) return toast('GPS unavailable', 'red');
-    toast('Location detect ho rahi hai...', 'amber');
-    navigator.geolocation.getCurrentPosition(pos => {
-        document.getElementById('set-lat').value = pos.coords.latitude.toFixed(7);
-        document.getElementById('set-lon').value = pos.coords.longitude.toFixed(7);
-        toast('📍 Location captured!');
-    }, () => toast('Location permission denied', 'red'));
-}
-
-async function saveLocation() {
-    const lat = parseFloat(document.getElementById('set-lat').value);
-    const lon = parseFloat(document.getElementById('set-lon').value);
-    if (isNaN(lat) || isNaN(lon)) return toast('Valid lat/lon enter karein', 'red');
-    await sb.from('salons').update({ latitude: lat, longitude: lon }).eq('id', currentSalon.id);
-    currentSalon.latitude = lat; currentSalon.longitude = lon;
-    localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
-    toast('✅ Location saved!');
-}
-
-async function saveLocationDetails() {
-    const updates = {
-        city: document.getElementById('set-city').value.trim(),
-        state: document.getElementById('set-state').value.trim(),
-        area: document.getElementById('set-area').value.trim(),
-        pincode: document.getElementById('set-pin').value.trim(),
-    };
-    await sb.from('salons').update(updates).eq('id', currentSalon.id);
-    Object.assign(currentSalon, updates);
-    localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
-    toast('✅ Location details saved!');
+    ${data.slice(0,5).map(r => `
+    <div class="py-2 border-b border-white/5">
+        <div class="flex justify-between items-center">
+            <p class="text-xs font-black text-white">${r.customer_name || 'Customer'}</p>
+            <div class="flex gap-0.5">${[1,2,3,4,5].map(n=>`<i class="fa-solid fa-star text-[10px] ${n<=r.rating?'text-amber-400':'text-slate-700'}"></i>`).join('')}</div>
+        </div>
+        ${r.comment ? `<p class="text-[9px] text-slate-400 mt-0.5">${r.comment}</p>` : ''}
+    </div>`).join('')}`;
 }
 
 async function saveProfile() {
@@ -859,23 +1165,48 @@ async function saveProfile() {
         phone: document.getElementById('set-phone').value.trim(),
         address: document.getElementById('set-addr').value.trim(),
     };
-    const { error } = await sb.from('salons').update(updates).eq('id', currentSalon.id);
+    const { error } = await supabaseClient.from('salons').update(updates).eq('id', currentSalon.id);
     if (!error) {
         Object.assign(currentSalon, updates);
-        localStorage.setItem('salonOwner', JSON.stringify(currentSalon));
-        document.getElementById('salon-name-display').textContent = updates.name || currentSalon.name;
-        toast('✅ Profile updated!');
-    } else toast('Error: ' + error.message, 'red');
+        document.getElementById('salon-name-display').innerText = updates.name || currentSalon.name;
+        alert("✅ Profile updated!");
+    } else { alert("Error: " + error.message); }
+}
+
+async function saveOffer() {
+    const offer = document.getElementById('set-offer').value.trim();
+    await supabaseClient.from('salons').update({ offer_text: offer }).eq('id', currentSalon.id);
+    currentSalon.offer_text = offer;
+    alert("✅ Offer saved!");
+}
+
+async function savePaymentSettings() {
+    const upi  = document.getElementById('set-upi').value.trim();
+    const cash = document.getElementById('set-cash').checked;
+    await supabaseClient.from('salons').update({ upi_id: upi, accept_cash: cash }).eq('id', currentSalon.id);
+    currentSalon.upi_id = upi; currentSalon.accept_cash = cash;
+    alert("✅ Payment settings saved!");
+}
+
+async function saveCashOption(val) {
+    await supabaseClient.from('salons').update({ accept_cash: val }).eq('id', currentSalon.id);
+    currentSalon.accept_cash = val;
 }
 
 async function updatePassword() {
     const oldP = document.getElementById('old-p').value;
     const newP = document.getElementById('new-p').value;
-    if (oldP !== currentSalon.password) return toast('❌ Purana password galat!', 'red');
-    if (newP.length < 4) return toast('Minimum 4 characters chahiye!', 'red');
-    const { error } = await sb.from('salons').update({ password: newP }).eq('id', currentSalon.id);
-    if (!error) { toast('✅ Password updated!'); currentSalon.password = newP; localStorage.setItem('salonOwner', JSON.stringify(currentSalon)); }
-    else toast('Error: ' + error.message, 'red');
+    if (oldP !== currentSalon.password) return alert("❌ Purana password galat hai!");
+    if (newP.length !== 6 || !/^\d+$/.test(newP)) return alert("6-digit numeric password chahiye!");
+    const { error } = await supabaseClient.from('salons').update({ password: newP }).eq('id', currentSalon.id);
+    if (!error) { alert("✅ Password update ho gaya!"); currentSalon.password = newP; }
+}
+
+// ══════════════════════════════════════
+// MODAL HELPER
+// ══════════════════════════════════════
+function closeModal(id, event) {
+    if (event.target.classList.contains('modal-bg')) document.getElementById(id)?.remove();
 }
 </script>
 </body>

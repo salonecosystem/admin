@@ -118,15 +118,29 @@ function switchTab(t) {
 // ═══════════════════════════════════════════════
 async function init() {
     if (agent) {
-        // Re-verify block status from DB on every app load
-        const { data } = await sb.from('agents').select('status').eq('partner_id', agent.partner_id).single();
-        if (data && data.status === 'blocked') {
+        // Re-verify agent exists and is not blocked
+        const { data, error } = await sb.from('agents').select('*').eq('partner_id', agent.partner_id).maybeSingle();
+        
+        // Agent deleted ya nahi mila — logout karo
+        if (error || !data) {
+            localStorage.removeItem('salonAgent');
+            agent = null;
+            alert("⚠️ Aapka account exist nahi karta. Dobara login karein.");
+            renderLogin();
+            return;
+        }
+        // Block check — status ya is_blocked dono check karo
+        const isBlocked = (data.is_blocked === true) || (data.status === 'blocked');
+        if (isBlocked) {
             localStorage.removeItem('salonAgent');
             agent = null;
             alert("🚫 Aapka account block kar diya gaya hai. Admin se contact karein.");
             renderLogin();
             return;
         }
+        // Fresh data se update karo localStorage
+        agent = data;
+        localStorage.setItem('salonAgent', JSON.stringify(data));
         nav().classList.remove('hidden');
         switchTab('home');
     } else {
@@ -280,7 +294,7 @@ function filterSalons(q) {
 }
 
 async function fixUID(salonId) {
-    const uid = 'SAL' + salonId.replace(/-/g,'').substring(0,7).toUpperCase();
+    const uid = 'SAL' + Math.floor(1000 + Math.random() * 9000);
     const { error } = await sb.from('salons').update({ owner_id: uid }).eq('id', salonId);
     if (!error) {
         try { await navigator.clipboard.writeText(uid); } catch(_) {}
@@ -697,7 +711,7 @@ async function submitOnboard() {
     try {
         // Pre-generate UUID + owner_id in one INSERT
         const newId  = crypto.randomUUID();
-        const ownerId = 'SAL' + newId.replace(/-/g,'').substring(0,7).toUpperCase();
+        const ownerId = 'SAL' + Math.floor(1000 + Math.random() * 9000);
 
         const payload = {
             id: newId,
@@ -723,26 +737,21 @@ async function submitOnboard() {
         const { data: salon, error } = await sb.from('salons').insert([payload]).select().single();
         if (error) { alert("Error: " + error.message); renderOnboard(5); return; }
 
-        // Commission
+        // Commission — sirf pending record banao, wallet mein tab add hoga jab admin approve kare
         let commission = 200;
         try {
             const { data: cfg } = await sb.from('app_settings').select('agent_commission').eq('id',1).single();
             if (cfg?.agent_commission != null) commission = Number(cfg.agent_commission);
         } catch(_) {}
 
-        const newBal = (agent.wallet_balance || 0) + commission;
-        await sb.from('agents').update({ wallet_balance: newBal, total_earning: (agent.total_earning||0)+commission }).eq('partner_id', agent.partner_id);
-        agent.wallet_balance = newBal;
-        agent.total_earning  = (agent.total_earning||0) + commission;
-        localStorage.setItem('salonAgent', JSON.stringify(agent));
-
+        // Wallet mein ABHI nahi — sirf pending commission record banao
         await sb.from('commissions').insert([{
             partner_id: agent.partner_id,
             salon_id: salon.id,
             salon_name: ob.salonName,
             amount: commission,
             utr_number: utr,
-            status: 'credited',
+            status: 'pending',
             created_at: new Date().toISOString()
         }]);
 
@@ -773,16 +782,16 @@ function renderComplete(utr, info) {
                 <i class="fa-solid fa-circle-check text-4xl"></i>
             </div>
             <h2 class="text-2xl font-black uppercase italic">Onboarding <span class="text-emerald-400">Complete!</span></h2>
-            <p class="text-[10px] text-slate-500 mt-1">Commission wallet mein add ho gaya</p>
+            <p class="text-[10px] text-slate-500 mt-1">Admin approve karne ke baad commission milegi</p>
         </div>
 
         <!-- Commission Banner -->
-        <div class="glass p-4 flex items-center justify-between" style="border:1.5px solid rgba(16,185,129,0.4)">
+        <div class="glass p-4 flex items-center justify-between" style="border:1.5px solid rgba(245,158,11,0.4)">
             <div class="flex items-center gap-3">
-                <div class="btn-green w-10 h-10 rounded-xl flex items-center justify-center"><i class="fa-solid fa-indian-rupee-sign text-sm"></i></div>
+                <div class="btn-amber w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#f59e0b,#b45309)"><i class="fa-solid fa-clock text-sm text-white"></i></div>
                 <div>
-                    <p class="text-[8px] font-black text-emerald-400 uppercase">Commission Credited</p>
-                    <p class="text-[9px] text-slate-400">Wallet balance updated</p>
+                    <p class="text-[8px] font-black text-amber-400 uppercase">Commission Pending</p>
+                    <p class="text-[9px] text-slate-400">Admin approve hone ke baad wallet mein aayegi</p>
                 </div>
             </div>
             <p class="text-2xl font-black text-emerald-300">+₹${info.commission}</p>
@@ -935,11 +944,23 @@ async function filterW() {
 async function renderSettings() {
     loading('Settings...');
     try {
-        const { data: ag, error } = await sb.from('agents').select('*').eq('partner_id', agent.partner_id).single();
-        if (error || !ag) { errScreen('Settings load nahi hua. Internet check karein.', 'renderSettings'); return; }
+        const { data: ag, error } = await sb.from('agents').select('*').eq('partner_id', agent.partner_id).maybeSingle();
+        if (error || !ag) {
+            // Agent deleted — force logout
+            localStorage.removeItem('salonAgent');
+            agent = null;
+            alert("⚠️ Session expire ho gaya. Dobara login karein.");
+            renderLogin();
+            return;
+        }
+        agent = ag;
+        localStorage.setItem('salonAgent', JSON.stringify(ag));
 
-        const { data: accounts } = await sb.from('agent_bank_accounts').select('*').eq('partner_id', agent.partner_id).order('created_at',{ascending:true});
-        const banks = accounts || [];
+        let banks = [];
+        try {
+            const { data: accounts } = await sb.from('agent_bank_accounts').select('*').eq('partner_id', agent.partner_id).order('created_at',{ascending:true});
+            banks = accounts || [];
+        } catch(e) { banks = []; }
 
         app().innerHTML = `
         <div class="p-5 pt-10 pb-28 space-y-5">

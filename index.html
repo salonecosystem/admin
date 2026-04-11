@@ -269,6 +269,7 @@ input:checked+.togslider:before{transform:translateX(20px);background:white;}
           <select id="salon-status-filter" onchange="loadSalons()" style="width:120px">
             <option value="">All</option><option value="pending">Pending</option>
             <option value="approved">Approved</option><option value="blocked">Blocked</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
       </div>
@@ -368,7 +369,7 @@ input:checked+.togslider:before{transform:translateX(20px);background:white;}
             <button class="btn btn-sm btn-violet" onclick="saveQRSettings()"><i class="fa-solid fa-save"></i> Save All QRs</button>
           </div>
           <div class="card-body">
-            <div class="info-box"><i class="fa-solid fa-circle-info"></i> Har category/type ke liye alag QR URL daalo. Agent onboarding ke time wahi QR dikhega.</div>
+            <div class="info-box"><i class="fa-solid fa-circle-info"></i> Har category/type ke liye alag QR image upload karein. Agent onboarding ke time wahi QR dikhega.</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px;">
 
@@ -377,19 +378,22 @@ input:checked+.togslider:before{transform:translateX(20px);background:white;}
                 <div style="font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-scissors"></i> Salon</div>
 
                 <div style="margin-bottom:16px;">
-                  <label class="flabel">🌀 Non-AC — QR Image URL</label>
-                  <input type="url" id="qr-salon-nonac" placeholder="https://..." style="margin-bottom:6px;">
-                  <div id="qr-prev-salon-nonac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                  <label class="flabel">🌀 Non-AC — QR Image</label>
+                  <input type="file" id="qr-file-salon-nonac" accept="image/*" onchange="previewQR('salon-nonac',this)" style="margin-bottom:6px;">
+                  <input type="hidden" id="qr-salon-nonac">
+                  <div id="qr-prev-salon-nonac" style="display:none;text-align:center;margin-top:6px;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
                 </div>
                 <div style="margin-bottom:16px;">
-                  <label class="flabel">❄️ AC — QR Image URL</label>
-                  <input type="url" id="qr-salon-ac" placeholder="https://..." style="margin-bottom:6px;">
-                  <div id="qr-prev-salon-ac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                  <label class="flabel">❄️ AC — QR Image</label>
+                  <input type="file" id="qr-file-salon-ac" accept="image/*" onchange="previewQR('salon-ac',this)" style="margin-bottom:6px;">
+                  <input type="hidden" id="qr-salon-ac">
+                  <div id="qr-prev-salon-ac" style="display:none;text-align:center;margin-top:6px;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
                 </div>
                 <div style="margin-bottom:16px;">
-                  <label class="flabel">👑 Luxury — QR Image URL</label>
-                  <input type="url" id="qr-salon-luxury" placeholder="https://..." style="margin-bottom:6px;">
-                  <div id="qr-prev-salon-luxury" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                  <label class="flabel">👑 Luxury — QR Image</label>
+                  <input type="file" id="qr-file-salon-luxury" accept="image/*" onchange="previewQR('salon-luxury',this)" style="margin-bottom:6px;">
+                  <input type="hidden" id="qr-salon-luxury">
+                  <div id="qr-prev-salon-luxury" style="display:none;text-align:center;margin-top:6px;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
                 </div>
               </div>
 
@@ -398,19 +402,22 @@ input:checked+.togslider:before{transform:translateX(20px);background:white;}
                 <div style="font-size:11px;font-weight:800;color:var(--violet);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-spa"></i> Beauty Parlour</div>
 
                 <div style="margin-bottom:16px;">
-                  <label class="flabel">🌀 Non-AC — QR Image URL</label>
-                  <input type="url" id="qr-parlour-nonac" placeholder="https://..." style="margin-bottom:6px;">
-                  <div id="qr-prev-parlour-nonac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                  <label class="flabel">🌀 Non-AC — QR Image</label>
+                  <input type="file" id="qr-file-parlour-nonac" accept="image/*" onchange="previewQR('parlour-nonac',this)" style="margin-bottom:6px;">
+                  <input type="hidden" id="qr-parlour-nonac">
+                  <div id="qr-prev-parlour-nonac" style="display:none;text-align:center;margin-top:6px;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
                 </div>
                 <div style="margin-bottom:16px;">
-                  <label class="flabel">❄️ AC — QR Image URL</label>
-                  <input type="url" id="qr-parlour-ac" placeholder="https://..." style="margin-bottom:6px;">
-                  <div id="qr-prev-parlour-ac" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                  <label class="flabel">❄️ AC — QR Image</label>
+                  <input type="file" id="qr-file-parlour-ac" accept="image/*" onchange="previewQR('parlour-ac',this)" style="margin-bottom:6px;">
+                  <input type="hidden" id="qr-parlour-ac">
+                  <div id="qr-prev-parlour-ac" style="display:none;text-align:center;margin-top:6px;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
                 </div>
                 <div style="margin-bottom:16px;">
-                  <label class="flabel">👑 Luxury — QR Image URL</label>
-                  <input type="url" id="qr-parlour-luxury" placeholder="https://..." style="margin-bottom:6px;">
-                  <div id="qr-prev-parlour-luxury" style="display:none;text-align:center;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
+                  <label class="flabel">👑 Luxury — QR Image</label>
+                  <input type="file" id="qr-file-parlour-luxury" accept="image/*" onchange="previewQR('parlour-luxury',this)" style="margin-bottom:6px;">
+                  <input type="hidden" id="qr-parlour-luxury">
+                  <div id="qr-prev-parlour-luxury" style="display:none;text-align:center;margin-top:6px;"><img style="width:80px;height:80px;object-fit:contain;border-radius:8px;background:white;padding:4px;" onerror="this.style.display='none'"></div>
                 </div>
               </div>
 
@@ -786,7 +793,7 @@ async function loadDashboard() {
     ? (pendingSalons||[]).map(s=>`
       <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
         <div><div style="font-size:12px;font-weight:600;">${s.name}</div><div style="font-size:10px;color:var(--text3);">${s.phone} • ${s.category||''}</div></div>
-        <button class="btn btn-sm btn-green" onclick="approveSalon('${s.id}')"><i class="fa-solid fa-check"></i> Approve</button>
+        <div class="flex gap2"><button class="btn btn-sm btn-green" onclick="approveSalon('${s.id}')"><i class="fa-solid fa-check"></i> Approve</button><button class="btn btn-sm btn-red" onclick="rejectSalon('${s.id}','${(s.name||'').replace(/'/g,'')}')"><i class="fa-solid fa-xmark"></i> Reject</button></div>
       </div>`).join('')
     : '<div class="empty"><i class="fa-solid fa-circle-check"></i><p>All clear!</p></div>';
 }
@@ -822,11 +829,11 @@ function renderSalons(list) {
           <button class="btn btn-sm btn-ghost" onclick="setSalonFee('${s.id}','${s.name}',${s.booking_fee||0})"><i class="fa-solid fa-pen"></i></button>
         </div>
       </td>
-      <td><span class="badge ${s.status==='approved'?'bg':s.status==='blocked'?'br':'ba'}">${s.status||'pending'}</span></td>
+      <td><span class="badge ${s.status==='approved'?'bg':s.status==='blocked'?'br':s.status==='rejected'?'br':'ba'}">${s.status||'pending'}</span></td>
       <td>
         <div class="flex gap2">
           <button class="btn btn-sm btn-ghost" onclick="viewSalon('${s.id}')"><i class="fa-solid fa-eye"></i></button>
-          ${s.status==='pending' ? `<button class="btn btn-sm btn-green" onclick="approveSalon('${s.id}')"><i class="fa-solid fa-check"></i></button>` : ''}
+          ${s.status==='pending' ? `<button class="btn btn-sm btn-green" onclick="approveSalon('${s.id}')"><i class="fa-solid fa-check"></i></button><button class="btn btn-sm btn-red" onclick="rejectSalon('${s.id}','${(s.name||'').replace(/'/g,'')}')"><i class="fa-solid fa-xmark"></i></button>` : ''}
           ${s.status==='approved' ? `<button class="btn btn-sm btn-amber" onclick="blockSalon('${s.id}','block')"><i class="fa-solid fa-ban"></i></button>` : ''}
           ${s.status==='blocked'  ? `<button class="btn btn-sm btn-blue" onclick="blockSalon('${s.id}','unblock')"><i class="fa-solid fa-unlock"></i></button>` : ''}
           <button class="btn btn-sm btn-red" onclick="deleteSalon('${s.id}')"><i class="fa-solid fa-trash"></i></button>
@@ -836,9 +843,70 @@ function renderSalons(list) {
 }
 
 async function approveSalon(id) {
-  await db.from('salons').update({status:'approved'}).eq('id',id);
-  toast('✅ Salon approved!'); loadSalons(); loadDashboard();
+  // Salon approve karo
+  const { error } = await db.from('salons').update({status:'approved'}).eq('id',id);
+  if (error) { toast('❌ Approve failed: ' + error.message, 'red'); return; }
+
+  // Agent ki pending commission dhundo aur wallet mein add karo
+  try {
+    const { data: comm } = await db.from('commissions')
+      .select('*').eq('salon_id', id).eq('status','pending').maybeSingle();
+
+    if (comm) {
+      // Agent ka current wallet balance lo
+      const { data: ag } = await db.from('agents')
+        .select('wallet_balance,total_earned,total_earning')
+        .eq('partner_id', comm.partner_id).maybeSingle();
+
+      if (ag) {
+        const newBal     = (ag.wallet_balance  || 0) + comm.amount;
+        const newEarned  = (ag.total_earned    || 0) + comm.amount;
+        const newEarning = (ag.total_earning   || 0) + comm.amount;
+
+        // Wallet update karo
+        await db.from('agents').update({
+          wallet_balance: newBal,
+          total_earned:   newEarned,
+          total_earning:  newEarning
+        }).eq('partner_id', comm.partner_id);
+
+        // Commission status credited karo
+        await db.from('commissions').update({ status: 'credited' }).eq('id', comm.id);
+
+        toast('✅ Salon approved! Agent ko ₹' + comm.amount + ' commission mili!');
+      } else {
+        toast('✅ Salon approved!');
+      }
+    } else {
+      toast('✅ Salon approved!');
+    }
+  } catch(e) {
+    toast('✅ Salon approved! (Commission update mein error: ' + e.message + ')');
+  }
+
+  loadSalons(); loadDashboard();
 }
+async function rejectSalon(id, name) {
+  const reason = prompt(`"${name}" ko reject karne ka reason batao:`);
+  if (reason === null) return; // Cancel dabaya
+  if (!reason.trim()) return alert('Reason daalna zaroori hai!');
+
+  const { error } = await db.from('salons').update({
+    status: 'rejected',
+    rejection_reason: reason
+  }).eq('id', id);
+
+  if (error) { toast('❌ Reject failed: ' + error.message, 'red'); return; }
+
+  // Pending commission bhi cancel karo
+  try {
+    await db.from('commissions').update({ status: 'cancelled' }).eq('salon_id', id).eq('status', 'pending');
+  } catch(e) {}
+
+  toast('❌ Salon rejected!', 'red');
+  loadSalons(); loadDashboard();
+}
+
 async function blockSalon(id, action) {
   await db.from('salons').update({status: action==='block'?'blocked':'approved'}).eq('id',id);
   toast(action==='block'?'🚫 Salon blocked':'✅ Salon unblocked'); loadSalons();
@@ -870,12 +938,13 @@ async function viewSalon(id) {
       <div class="fg"><label class="flabel">Owner ID</label><div class="mono" style="font-size:11px;">${s.owner_id||'—'}</div></div>
       <div class="fg"><label class="flabel">UTR</label><div class="mono" style="font-size:11px;">${s.utr_number||'—'}</div></div>
       <div class="fg"><label class="flabel">Booking Fee</label><div style="font-size:14px;font-weight:700;color:var(--amber);">₹${s.booking_fee||0}</div></div>
-      <div class="fg"><label class="flabel">Status</label><span class="badge ${s.status==='approved'?'bg':s.status==='blocked'?'br':'ba'}">${s.status||'pending'}</span></div>
+      <div class="fg"><label class="flabel">Status</label><span class="badge ${s.status==='approved'?'bg':s.status==='blocked'?'br':s.status==='rejected'?'br':'ba'}">${s.status||'pending'}</span></div>
     </div>
     <div class="fg"><label class="flabel">Agent (Onboarded By)</label><div class="mono" style="font-size:12px;">${s.onboarded_by||'—'}</div></div>
-    <div class="flex gap2" style="margin-top:6px;">
-      ${s.status!=='approved'?`<button class="btn btn-green" onclick="approveSalon('${s.id}');closeM('m-salon')"><i class="fa-solid fa-check"></i> Approve</button>`:''}
+    <div class="flex gap2" style="margin-top:6px;flex-wrap:wrap;">
+      ${s.status==='pending'?`<button class="btn btn-green" onclick="approveSalon('${s.id}');closeM('m-salon')"><i class="fa-solid fa-check"></i> Approve</button><button class="btn btn-red" onclick="rejectSalon('${s.id}','${s.name?.replace(/'/g,'')||''}');closeM('m-salon')"><i class="fa-solid fa-xmark"></i> Reject</button>`:''}
       ${s.status==='approved'?`<button class="btn btn-amber" onclick="blockSalon('${s.id}','block');closeM('m-salon')"><i class="fa-solid fa-ban"></i> Block</button>`:''}
+      ${s.status==='blocked'?`<button class="btn btn-blue" onclick="blockSalon('${s.id}','unblock');closeM('m-salon')"><i class="fa-solid fa-unlock"></i> Unblock</button>`:''}
     </div>`;
   openM('m-salon');
 }
@@ -967,17 +1036,16 @@ async function createAgent() {
   const partner_id = generatePartnerId(name, phone);
   const password   = generatePassword(name, phone);
 
-  const { error } = await db.from('agents').insert([{
+  // First try inserting without any block/status column
+  const insertData = {
     partner_id,
     name,
     phone,
     city,
-    password,
-    status: 'active',
-    total_earned: 0,
-    withdrawn: 0,
-    created_at: new Date().toISOString()
-  }]);
+    password
+  };
+
+  let { error } = await db.from('agents').insert([insertData]);
 
   btn.disabled = false;
   btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Agent';
@@ -1022,7 +1090,13 @@ async function loadAgents() {
 
   const tb = document.getElementById('agent-tbody');
   if (!(agents||[]).length) { tb.innerHTML=`<tr><td colspan="8"><div class="empty"><i class="fa-solid fa-user-tie"></i><p>No agents</p></div></td></tr>`; return; }
-  tb.innerHTML = (agents||[]).map(a=>`
+  tb.innerHTML = (agents||[]).map(a=>{
+    // Auto-detect blocked state from whichever column exists
+    const isBlocked = ('is_blocked' in a) ? !!a.is_blocked
+                    : ('status' in a)     ? a.status === 'blocked'
+                    : ('blocked' in a)    ? !!a.blocked
+                    : false;
+    return `
     <tr>
       <td><div style="font-weight:700;font-size:12px;">${a.name||a.partner_id}</div><div style="font-size:10px;color:var(--text3);">${a.city||''}</div></td>
       <td><span class="mono badge bgr" style="font-size:10px;">${a.partner_id}</span></td>
@@ -1030,37 +1104,58 @@ async function loadAgents() {
       <td style="font-weight:700;color:var(--green);">₹${a.total_earned||0}</td>
       <td style="font-weight:700;color:var(--amber);">₹${a.withdrawn||0}</td>
       <td style="font-weight:700;font-size:14px;">₹${(a.total_earned||0)-(a.withdrawn||0)}</td>
-      <td><span class="badge ${a.status==='blocked'?'br':'bg'}">${a.status==='blocked'?'Blocked':'Active'}</span></td>
+      <td><span class="badge ${isBlocked?'br':'bg'}">${isBlocked?'Blocked':'Active'}</span></td>
       <td>
         <div class="flex gap2">
           <button class="btn btn-sm btn-ghost" onclick="viewAgent('${a.partner_id}')" title="View"><i class="fa-solid fa-eye"></i></button>
           <button class="btn btn-sm btn-blue" onclick="viewWithdrawals('${a.partner_id}','${(a.name||a.partner_id).replace(/'/g,"\'")}')"><i class="fa-solid fa-wallet"></i></button>
-          ${a.status==='blocked'
+          ${isBlocked
             ? `<button class="btn btn-sm btn-green" onclick="toggleAgentBlock('${a.partner_id}','unblock')"><i class="fa-solid fa-unlock"></i></button>`
             : `<button class="btn btn-sm btn-amber" onclick="toggleAgentBlock('${a.partner_id}','block')"><i class="fa-solid fa-ban"></i></button>`}
           <button class="btn btn-sm btn-red" onclick="deleteAgent('${a.partner_id}','${(a.name||a.partner_id).replace(/'/g,"\'")}')"><i class="fa-solid fa-trash"></i></button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 async function toggleAgentBlock(pid, action) {
-  const newStatus = action === 'block' ? 'blocked' : 'active';
-  await db.from('agents').update({ status: newStatus }).eq('partner_id', pid);
+  // Fetch agent first to detect which column exists
+  const { data: agent } = await db.from('agents').select('*').eq('partner_id', pid).maybeSingle();
+  if (!agent) { toast('❌ Agent not found', 'red'); return; }
+
+  // Detect which block column exists
+  let updatePayload = null;
+  if ('is_blocked' in agent) {
+    updatePayload = { is_blocked: action === 'block' };
+  } else if ('status' in agent) {
+    updatePayload = { status: action === 'block' ? 'blocked' : 'active' };
+  } else if ('blocked' in agent) {
+    updatePayload = { blocked: action === 'block' };
+  } else {
+    // No block column found — inform admin to add one
+    toast('❌ Table mein block column nahi hai! Supabase mein SQL chalao: ALTER TABLE agents ADD COLUMN is_blocked boolean DEFAULT false;', 'red');
+    return;
+  }
+
+  const { error } = await db.from('agents').update(updatePayload).eq('partner_id', pid);
+  if (error) { toast('❌ Error: ' + error.message, 'red'); return; }
   toast(action === 'block' ? '🚫 Agent blocked!' : '✅ Agent unblocked!');
   loadAgents();
 }
 
 async function deleteAgent(pid, name) {
-  if (!confirm(`"${name}" ko permanently delete karein? Yeh action undo nahi hoga!`)) return;
-  await db.from('agents').delete().eq('partner_id', pid);
-  toast('🗑️ Agent deleted', 'red');
-  loadAgents();
+  if (!confirm(name + ' ko permanently delete karein? Yeh action undo nahi hoga!')) return;
+  const { error } = await db.from('agents').delete().eq('partner_id', pid);
+  if (error) { toast('❌ Delete failed: ' + error.message, 'red'); return; }
+  toast('🗑️ Agent deleted!', 'red');
+  setTimeout(() => loadAgents(), 600);
 }
 
 async function viewAgent(pid) {
-  const { data: a } = await db.from('agents').select('*').eq('partner_id',pid).single();
-  const { data: bk } = await db.from('agent_bank_accounts').select('*').eq('partner_id',pid);
+  const { data: a } = await db.from('agents').select('*').eq('partner_id',pid).single()
+    .then(r => r.data ? r : db.from('agents').select('*').eq('id',pid).single());
+  const bk = [];
   if (!a) return;
   document.getElementById('m-agent-body').innerHTML = `
     <div class="g2 mb4">
@@ -1504,9 +1599,20 @@ function selectDay(d) {
 }
 
 async function upsertSettings(updates) {
-  const { data: existing } = await db.from('app_settings').select('id').eq('id',1).single();
-  if (existing) await db.from('app_settings').update(updates).eq('id',1);
-  else await db.from('app_settings').insert([{id:1, ...updates}]);
+  try {
+    const { data: existing, error: selErr } = await db.from('app_settings').select('id').eq('id',1).maybeSingle();
+    if (existing) {
+      const { error } = await db.from('app_settings').update(updates).eq('id',1);
+      if (error) { toast('❌ Save failed: ' + error.message, 'red'); return false; }
+    } else {
+      const { error } = await db.from('app_settings').insert([{id:1, ...updates}]);
+      if (error) { toast('❌ Save failed: ' + error.message, 'red'); return false; }
+    }
+    return true;
+  } catch(e) {
+    toast('❌ Save error: ' + e.message, 'red');
+    return false;
+  }
 }
 
 async function saveSupportWhatsApp() {
@@ -1517,25 +1623,63 @@ async function saveSupportWhatsApp() {
 }
 
 async function saveQRSettings() {
+  const keys = ['salon-nonac','salon-ac','salon-luxury','parlour-nonac','parlour-ac','parlour-luxury'];
+  const btn = document.querySelector('[onclick="saveQRSettings()"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...'; }
+
+  // Upload new files if selected
+  for (const k of keys) {
+    const fileInput = document.getElementById('qr-file-' + k);
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      const ext  = file.name.split('.').pop();
+      const path = `qr/${k}.${ext}`;
+      const { data: upData, error: upErr } = await db.storage.from('qr-images').upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) { toast('❌ Upload failed for ' + k + ': ' + upErr.message, 'red'); }
+      else {
+        const { data: pubData } = db.storage.from('qr-images').getPublicUrl(path);
+        document.getElementById('qr-' + k).value = pubData.publicUrl + '?t=' + Date.now();
+      }
+    }
+  }
+
   const g = id => document.getElementById(id)?.value.trim() || '';
-  await upsertSettings({
+  const qrData = {
     payment_qr_urls: {
       salon:   { nonac: g('qr-salon-nonac'),   ac: g('qr-salon-ac'),   luxury: g('qr-salon-luxury') },
       parlour: { nonac: g('qr-parlour-nonac'), ac: g('qr-parlour-ac'), luxury: g('qr-parlour-luxury') }
     },
     payment_upi_id: g('s-upi'),
     payment_name:   g('s-payname'),
-  });
+  };
+  console.log('Saving QR data:', JSON.stringify(qrData));
+  const saved = await upsertSettings(qrData);
+
   // Show previews
-  ['salon-nonac','salon-ac','salon-luxury','parlour-nonac','parlour-ac','parlour-luxury'].forEach(k => {
-    const url = g('qr-' + k);
+  keys.forEach(k => {
+    const url  = g('qr-' + k);
     const prev = document.getElementById('qr-prev-' + k);
     if (prev) {
       if (url) { prev.style.display='block'; prev.querySelector('img').src = url; }
       else { prev.style.display='none'; }
     }
   });
-  toast('✅ Saare QR saved!');
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> Save All QRs'; }
+  if (saved) toast('✅ Saare QR saved successfully!');
+}
+
+function previewQR(key, input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('qr-prev-' + key);
+    if (prev) {
+      prev.style.display = 'block';
+      prev.querySelector('img').src = e.target.result;
+    }
+  };
+  reader.readAsDataURL(input.files[0]);
 }
 
 async function saveAgentComm() {
